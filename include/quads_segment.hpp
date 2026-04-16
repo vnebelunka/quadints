@@ -18,15 +18,12 @@ template <typename Scalar, unsigned int n_points> struct SegmentQuadrature {
 
 template <typename Scalar> struct barycentric_segment {
   std::array<Scalar, 1> coords;
+  template <typename segment_t>
+    requires segment<segment_t, Scalar>
+  constexpr auto to_domain(const segment_t &s) const {
+    return s.start() + (s.end() - s.start()) * coords[0];
+  }
 };
-
-template <typename Scalar, typename segment_t>
-  requires segment<segment_t, Scalar>
-constexpr auto
-from_reference_domain(const barycentric_segment<Scalar> &reference_point,
-                      const segment_t &s) -> segment_t::point_type {
-  return s.start() + (s.end() - s.start()) * reference_point.coords[0];
-}
 
 template <typename Scalar> struct SegmentQuadrature<Scalar, 1> {
   static constexpr std::array<barycentric_segment<Scalar>, 1> points{{0.5}};

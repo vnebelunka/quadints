@@ -16,25 +16,27 @@ concept triangle = requires(T t) {
 
 template <typename Scalar> struct barycentric_triangle {
   std::array<Scalar, 2> coords;
-};
-
-template <typename Scalar, unsigned int n_points> struct TriangleQuadrature {
-  static_assert("We have no quadrature of such dimension and order");
+  template <typename triangle_t>
+    requires triangle<triangle_t, Scalar>
+  constexpr auto to_domain(const triangle_t &t) const {
+    const auto &A = t.vertices[0];
+    const auto &B = t.vertices[1];
+    const auto &C = t.vertices[2];
+    typename triangle_t::point_type D =
+        A * coords[0] + B * coords[1] + C * (1 - coords[0] - coords[1]);
+    return D;
+  }
 };
 
 template <typename Scalar, typename triangle_t>
   requires triangle<triangle_t, Scalar>
 constexpr auto
 from_reference_domain(const barycentric_triangle<Scalar> &reference_point,
-                      const triangle_t &t) -> triangle_t::point_type {
-  const auto &A = t.vertices[0];
-  const auto &B = t.vertices[1];
-  const auto &C = t.vertices[2];
-  typename triangle_t::point_type D =
-      A * reference_point.coords[0] + B * reference_point.coords[1] +
-      C * (1 - reference_point.coords[0] - reference_point.coords[1]);
-  return D;
-}
+                      const triangle_t &t) -> triangle_t::point_type {}
+
+template <typename Scalar, unsigned int n_points> struct TriangleQuadrature {
+  static_assert("We have no quadrature of such dimension and order");
+};
 
 template <typename Scalar> struct TriangleQuadrature<Scalar, 1> {
   static constexpr size_t n_points = 1;
