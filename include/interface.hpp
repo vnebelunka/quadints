@@ -51,6 +51,11 @@ template <typename F, typename arg, typename Scalar>
 concept integrable =
     requires(F f, arg x) { requires banach_vec<Scalar, decltype(f(x))>; };
 
+template <typename F, typename arg1, typename arg2, typename Scalar>
+concept integrable2 = requires(F f, arg1 x, arg2 y) {
+  requires banach_vec<Scalar, decltype(f(x, y))>;
+};
+
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = decltype(*(QuadRule::weights.begin()))>
   requires quadrature_rule<QuadRule, Domain, Scalar> &&
@@ -71,5 +76,37 @@ constexpr auto integrate(Func &&f, const Domain &cell)
   }
   return res * cell.mes();
 }
+
+template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
+          typename Domain2, typename Func,
+          typename Scalar = decltype(*(QuadRule1::weights.begin()))>
+  requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
+           quadrature_rule<QuadRule2, Domain2, Scalar> &&
+           integrable2<Func, typename Domain1::point_type,
+                       typename Domain2::point_type, Scalar>
+constexpr auto integrate2(Func &&f, const Domain1 &cell1,
+                          const Domain2 &cell2) {
+  using return_type = std::invoke_result_t<Func, typename Domain1::point_type,
+                                           typename Domain2::point_type>;
+  return_type res{};
+  auto points1_it = std::ranges::begin(QuadRule1::points);
+  auto weights1_it = std::ranges::begin(QuadRule1::weights);
+  auto points1_end = std::ranges::end(QuadRule1::points);
+  auto points2_it = std::ranges::begin(QuadRule2::points);
+  auto weights2_it = std::ranges::begin(QuadRule2::weights);
+  auto points2_end = std::ranges::end(QuadRule2::points);
+  for (; points1_it != points1_end; ++points1_it, ++weights1_it) {
+    const auto &ref_point1 = *points1_it;
+    const auto weight1 = static_cast<Scalar>(*weights1_it);
+    const auto point1 = ref_point1.to_domain(cell1);
+    for (; points2_it != points2_end; ++points2_it, ++weights2_it) {
+      const auto &ref_point2 = *points2_it;
+      const auto weight2 = static_cast<Scalar>(*weights2_it);
+      const auto point2 = ref_point2.to_domain(cell2);
+      res += std::invoke(f, point1, point2) * weight1 * weight2;
+    }
+  }
+  return res * cell1.mes() * cell2.mes();
+};
 
 #endif // INTERFACE_HPP
