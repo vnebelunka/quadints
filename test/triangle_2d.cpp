@@ -10,15 +10,16 @@ using namespace quadints;
 
 struct Triangle {
   using point_type = point2d;
-  std::array<point2d, 3> vertices;
+  std::array<point2d, 3> _vertices;
   constexpr double mes() const {
     // Compute the area of the triangle using the determinant formula
-    const auto &A = vertices[0].coords;
-    const auto &B = vertices[1].coords;
-    const auto &C = vertices[2].coords;
+    const auto &A = _vertices[0].coords;
+    const auto &B = _vertices[1].coords;
+    const auto &C = _vertices[2].coords;
     return 0.5 * std::abs(A[0] * (B[1] - C[1]) + B[0] * (C[1] - A[1]) +
                           C[0] * (A[1] - B[1]));
   }
+  constexpr const std::array<point2d, 3> &vertices() const { return _vertices; }
 };
 
 // Test fixture

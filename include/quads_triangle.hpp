@@ -7,12 +7,12 @@
 #include <concepts>
 namespace quadints {
 template <typename T, typename Scalar>
-concept triangle = requires(T t) {
+concept triangle = requires(const T &t) {
   typename T::point_type;
   requires banach_vec<Scalar, typename T::point_type>;
-  t.vertices;
-  t.vertices[0], t.vertices[1], t.vertices[2];
-  requires t.vertices.size() == 3;
+  t.vertices();
+  t.vertices()[0], t.vertices()[1], t.vertices()[2];
+  requires t.vertices().size() == 3;
 };
 
 template <typename Scalar> struct barycentric_triangle {
@@ -20,9 +20,10 @@ template <typename Scalar> struct barycentric_triangle {
   template <typename triangle_t>
     requires triangle<triangle_t, Scalar>
   constexpr auto to_domain(const triangle_t &t) const {
-    const auto &A = t.vertices[0];
-    const auto &B = t.vertices[1];
-    const auto &C = t.vertices[2];
+    const auto &vertices = t.vertices();
+    const auto &A = vertices[0];
+    const auto &B = vertices[1];
+    const auto &C = vertices[2];
     typename triangle_t::point_type D =
         A * coords[0] + B * coords[1] + C * (1 - coords[0] - coords[1]);
     return D;
