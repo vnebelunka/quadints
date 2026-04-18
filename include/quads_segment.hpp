@@ -2,7 +2,10 @@
 #define SEGMENT_QUADS_HPP
 #include "interface.hpp"
 #include <array>
+
 #include <concepts>
+
+namespace quadints {
 
 template <typename T, typename Scalar>
 concept segment = requires(T s) {
@@ -58,4 +61,5 @@ public:
   static constexpr std::size_t n_points = 3;
 };
 
+} // namespace quadints
 #endif // SEGMENT_QUADS_HPP

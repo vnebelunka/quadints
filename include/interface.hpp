@@ -6,6 +6,8 @@
 #include <iterator>
 #include <ranges>
 
+namespace quadints {
+
 template <typename T, typename scalar>
 concept has_norm = requires(T t) {
   { norm(t) } -> std::convertible_to<scalar>;
@@ -109,4 +111,5 @@ constexpr auto integrate2(Func &&f, const Domain1 &cell1,
   return res * cell1.mes() * cell2.mes();
 };
 
+} // namespace quadints
 #endif // INTERFACE_HPP

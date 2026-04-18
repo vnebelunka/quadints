@@ -3,8 +3,9 @@
 
 #include "interface.hpp"
 #include <array>
-#include <concepts>
 
+#include <concepts>
+namespace quadints {
 template <typename T, typename Scalar>
 concept triangle = requires(T t) {
   typename T::point_type;
@@ -67,5 +68,5 @@ template <typename Scalar> struct TriangleQuadrature<Scalar, 7> {
       9. / 20, 2. / 15, 2. / 15, 2. / 15, 1. / 20, 1. / 20, 1. / 20,
   };
 };
-
+} // namespace quadints
 #endif // TRIANGLE_QUADS_HPP
