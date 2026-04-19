@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <ranges>
 
@@ -94,14 +95,14 @@ constexpr auto integrate2(Func &&f, const Domain1 &cell1,
   auto points1_it = std::ranges::begin(QuadRule1::points);
   auto weights1_it = std::ranges::begin(QuadRule1::weights);
   auto points1_end = std::ranges::end(QuadRule1::points);
-  auto points2_it = std::ranges::begin(QuadRule2::points);
-  auto weights2_it = std::ranges::begin(QuadRule2::weights);
-  auto points2_end = std::ranges::end(QuadRule2::points);
   for (; points1_it != points1_end; ++points1_it, ++weights1_it) {
     const auto &ref_point1 = *points1_it;
     const auto weight1 = static_cast<Scalar>(*weights1_it);
     const auto point1 = ref_point1.to_domain(cell1);
-    for (; points2_it != points2_end; ++points2_it, ++weights2_it) {
+    for (auto weights2_it = std::begin(QuadRule2::weights),
+              points2_it = std::begin(QuadRule2::points);
+         points2_it != std::end(QuadRule2::points);
+         ++points2_it, ++weights2_it) {
       const auto &ref_point2 = *points2_it;
       const auto weight2 = static_cast<Scalar>(*weights2_it);
       const auto point2 = ref_point2.to_domain(cell2);
