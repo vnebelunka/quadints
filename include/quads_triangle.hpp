@@ -3,6 +3,7 @@
 
 #include "interface.hpp"
 #include <array>
+#include <cmath>
 
 #include <concepts>
 namespace quadints {
@@ -56,18 +57,33 @@ template <typename Scalar> struct TriangleQuadrature<Scalar, 3> {
 
 template <typename Scalar> struct TriangleQuadrature<Scalar, 7> {
   static constexpr size_t n_points = 7;
+
+  // Precompute constants using std::sqrt (requires C++26 or a constexpr sqrt
+  // implementation)
+  static constexpr Scalar sqrt15 = static_cast<Scalar>(
+      3.872983346207416885179265399782399610832921705291590826587573766113483091936996);
+  static constexpr Scalar l1 = (6 + sqrt15) / 21;
+  static constexpr Scalar l2 = (6 - sqrt15) / 21;
+  static constexpr Scalar w1 = (155 + sqrt15) / 1200;
+  static constexpr Scalar w2 = (155 - sqrt15) / 1200;
+
   static constexpr std::array<barycentric_triangle<Scalar>, 7> points{
-      barycentric_triangle<Scalar>{1. / 3, 1. / 3},
-      {1. / 2, 0.},
-      {1. / 2, 1. / 2},
-      {0., 1. / 2},
-      {1., 0.},
-      {0., 1.},
-      {0., 0.},
-  };
-  static constexpr std::array<Scalar, 7> weights{
-      9. / 20, 2. / 15, 2. / 15, 2. / 15, 1. / 20, 1. / 20, 1. / 20,
-  };
+      barycentric_triangle<Scalar>{Scalar(1.0 / 3.0),
+                                   Scalar(1.0 / 3.0)}, // centroid
+      barycentric_triangle<Scalar>{l1, l1},
+      barycentric_triangle<Scalar>{l1, 1 - 2 * l1},
+      barycentric_triangle<Scalar>{1 - 2 * l1, l1},
+      barycentric_triangle<Scalar>{l2, l2},
+      barycentric_triangle<Scalar>{l2, 1 - 2 * l2},
+      barycentric_triangle<Scalar>{1 - 2 * l2, l2}};
+
+  static constexpr std::array<Scalar, 7> weights{Scalar(0.225), // = 9/40
+                                                 w1,
+                                                 w1,
+                                                 w1,
+                                                 w2,
+                                                 w2,
+                                                 w2};
 };
 } // namespace quadints
 #endif // TRIANGLE_QUADS_HPP
