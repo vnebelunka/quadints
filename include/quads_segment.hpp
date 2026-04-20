@@ -1,8 +1,9 @@
 #ifndef SEGMENT_QUADS_HPP
 #define SEGMENT_QUADS_HPP
-#include "interface.hpp"
-#include <array>
 
+#include "interface.hpp"
+
+#include <array>
 #include <concepts>
 
 namespace quadints {
@@ -32,6 +33,7 @@ template <typename Scalar> struct SegmentQuadrature<Scalar, 1> {
   static constexpr std::array<barycentric_segment<Scalar>, 1> points{{0.5}};
   static constexpr std::array<Scalar, 1> weights{1.};
   static constexpr int n_points = 1;
+  using scalar_t = Scalar;
 };
 
 template <typename Scalar> struct SegmentQuadrature<Scalar, 2> {
@@ -45,6 +47,7 @@ public:
       barycentric_segment<Scalar>{{1. / 2 * (1 + 1. / sqrt_3)}}};
   static constexpr std::array<Scalar, 2> weights{1. / 2, 1. / 2};
   static constexpr std::size_t n_points = 2;
+  using scalar_t = Scalar;
 };
 
 template <typename Scalar> struct SegmentQuadrature<Scalar, 3> {
@@ -59,6 +62,57 @@ public:
       barycentric_segment<Scalar>{{1. / 2}}};
   static constexpr std::array<Scalar, 3> weights{5. / 18, 5. / 18, 4. / 9};
   static constexpr std::size_t n_points = 3;
+  using scalar_t = Scalar;
+};
+
+template <typename Scalar> struct SegmentQuadrature<Scalar, 4> {
+private:
+  static constexpr Scalar x1 =
+      static_cast<Scalar>(0.339981043584856265);
+  static constexpr Scalar x2 =
+      static_cast<Scalar>(0.861136311594052575);
+
+public:
+  static constexpr std::array<barycentric_segment<Scalar>, 4> points{
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x2)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x1)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x1)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x2)}}};
+
+  static constexpr std::array<Scalar, 4> weights{
+    static_cast<Scalar>(0.086963711284363464),
+    static_cast<Scalar>(0.163036288715636536),
+    static_cast<Scalar>(0.163036288715636536),
+    static_cast<Scalar>(0.086963711284363464)};
+
+  static constexpr std::size_t n_points = 4;
+  using scalar_t = Scalar;
+};
+
+template <typename Scalar> struct SegmentQuadrature<Scalar, 5> {
+private:
+  static constexpr Scalar x1 =
+      static_cast<Scalar>(0.906179845938663993);
+  static constexpr Scalar x2 =
+      static_cast<Scalar>(0.538469310105683091);
+
+public:
+  static constexpr std::array<barycentric_segment<Scalar>, 5> points{
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x1)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x2)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x2)}},
+    barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x1)}}};
+
+  static constexpr std::array<Scalar, 5> weights{
+    static_cast<Scalar>(0.118463442528094544),
+    static_cast<Scalar>(0.239314335249683234),
+    static_cast<Scalar>(0.284444444444444444),
+    static_cast<Scalar>(0.239314335249683234),
+    static_cast<Scalar>(0.118463442528094544)};
+
+  static constexpr std::size_t n_points = 5;
+  using scalar_t = Scalar;
 };
 
 } // namespace quadints

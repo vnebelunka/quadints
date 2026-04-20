@@ -46,6 +46,7 @@ template <typename Scalar> struct TriangleQuadrature<Scalar, 1> {
   static constexpr std::array<barycentric_triangle<Scalar>, 1> points{
       {{1. / 3, 1. / 3}}};
   static constexpr std::array<Scalar, 1> weights{1.};
+  using scalar_t = Scalar;
 };
 
 template <typename Scalar> struct TriangleQuadrature<Scalar, 3> {
@@ -53,6 +54,7 @@ template <typename Scalar> struct TriangleQuadrature<Scalar, 3> {
   static constexpr std::array<barycentric_triangle<Scalar>, 3> points{
       barycentric_triangle<Scalar>{0.5, 0.}, {0.5, 0.5}, {0., 0.5}};
   static constexpr std::array<Scalar, 3> weights{1. / 3, 1. / 3, 1. / 3};
+  using scalar_t = Scalar;
 };
 
 template <typename Scalar> struct TriangleQuadrature<Scalar, 7> {
@@ -84,6 +86,7 @@ template <typename Scalar> struct TriangleQuadrature<Scalar, 7> {
                                                  w2,
                                                  w2,
                                                  w2};
+  using scalar_t = Scalar;
 };
 } // namespace quadints
 #endif // TRIANGLE_QUADS_HPP
