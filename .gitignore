@@ -36,6 +36,9 @@ builddir
 *.out
 *.app
 
+# Benchmarks
+benchmarks
+
 # ---> CMake
 CMakeLists.txt.user
 CMakeCache.txt

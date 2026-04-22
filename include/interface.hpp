@@ -2,9 +2,13 @@
 #define INTERFACE_HPP
 
 #include <concepts>
+#include <execution>
 #include <functional>
 #include <iterator>
+#include <numeric>
 #include <ranges>
+
+#include "quads_product.hpp"
 
 namespace quadints {
 
@@ -59,31 +63,103 @@ concept integrable2 = requires(F f, arg1 x, arg2 y) {
 };
 
 namespace detail_ {
+
+// Две функции оставил, потому что в разных случаях одна быстрее другой,
+// но обе быстрее обычного for, даже с -march=native
+
 template <typename QuadRule, typename Domain, typename Func, typename Scalar,
           size_t... Idx>
-requires quadrature_rule<QuadRule, Domain, Scalar> &&
-         integrable<Func, typename Domain::point_type, Scalar>
 constexpr decltype(auto) impl_integrate_(Func &&f, const Domain &cell,
-                               std::index_sequence<Idx...> /**/) {
+                                         std::index_sequence<Idx...> /**/) {
   using return_type =
-      decltype(std::declval<
-                   std::invoke_result_t<Func, typename Domain::point_type>>() *
+      decltype(std::declval<std::invoke_result_t<
+                   Func, typename std::remove_cvref_t<Domain>::point_type>>() *
                std::declval<Scalar>());
-
+  // квадратурная сумма
   return ((std::invoke(std::forward<Func>(f),
                        QuadRule::points[Idx].to_domain(cell)) *
            QuadRule::weights[Idx]) +
           ... + return_type{}) *
          cell.mes();
 }
+
+template <typename QuadRule, typename Domain, typename Func, typename Scalar,
+          size_t... Idx>
+constexpr decltype(auto)
+impl_transform_reduce_integrate_(Func &&f, const Domain &cell,
+                                 std::index_sequence<Idx...> /**/) {
+  using return_type =
+      decltype(std::declval<std::invoke_result_t<
+                   Func, typename std::remove_cvref_t<Domain>::point_type>>() *
+               std::declval<Scalar>());
+  // квадратурная сумма
+  return std::transform_reduce(
+             std::execution::seq, QuadRule::points.begin(),
+             QuadRule::points.end(), QuadRule::weights.begin(), return_type{},
+             std::plus<return_type>{},
+             [&cell, func = std::forward<Func>(f)](auto &&p, auto &&v) {
+               return func(p.to_domain(cell)) * v;
+             }) *
+         cell.mes();
+}
+
+// Двумерная квадратура
+template <typename Func, typename Point, typename Scalar, size_t... Idx>
+constexpr decltype(auto)
+impl_quadrature_sum2_(Func &&f, const std::array<Point, sizeof...(Idx)> &points,
+                      const std::array<Scalar, sizeof...(Idx)> &weights,
+                      std::index_sequence<Idx...>) {
+  return ((std::invoke(std::forward<Func>(f), points[Idx].first,
+                       points[Idx].second) *
+           weights[Idx]) +
+          ...);
+}
+
+template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
+          typename Domain2, typename Func, size_t... Idx1, size_t... Idx2>
+constexpr decltype(auto)
+impl_integrate2_(Func &&f, Domain1 &&cell1, Domain2 &&cell2,
+                 std::index_sequence<Idx1...>, std::index_sequence<Idx2...>) {
+  // Насчитываем точки на ячейках
+  std::array points_1{QuadRule1::points[Idx1].to_domain(cell1)...};
+  std::array points_2{QuadRule2::points[Idx2].to_domain(cell2)...};
+
+  // Декартово произведение точек
+  decltype(auto) points_product =
+      utils::flatten(utils::carteian_product(points_1, points_2));
+  // Тензорное произведение весов (должно быть вынесено отсюда)
+  constexpr decltype(auto) weights_product = utils::flatten(
+      utils::tensor_product(QuadRule1::weights, QuadRule2::weights));
+
+  return impl_quadrature_sum2_(
+             std::forward<Func>(f), points_product, weights_product,
+             std::make_index_sequence<sizeof...(Idx1) * sizeof...(Idx2)>{}) *
+         cell1.mes() * cell2.mes();
+};
+
 } // namespace detail_
 
+// Одномерное интегрирование
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = decltype(*QuadRule::weights.begin())>
+requires quadrature_rule<QuadRule, std::remove_cvref_t<Domain>, Scalar> &&
+         integrable<Func, typename std::remove_cvref_t<Domain>::point_type,
+                    Scalar>
 constexpr decltype(auto) integrate(Func &&f, const Domain &cell) {
   return detail_::impl_integrate_<QuadRule, Domain, Func, Scalar>(
       std::forward<Func>(f), cell,
       std::make_index_sequence<QuadRule::n_points>{});
+}
+
+// Двумерное интегрирование
+template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
+          typename Domain2, typename Func>
+constexpr auto integrate(Func &&f, Domain1 &&cell1, Domain2 &&cell2) {
+  return detail_::impl_integrate2_<QuadRule1, QuadRule2>(
+      std::forward<Func>(f), std::forward<Domain1>(cell1),
+      std::forward<Domain2>(cell2),
+      std::make_index_sequence<QuadRule1::n_points>{},
+      std::make_index_sequence<QuadRule2::n_points>{});
 }
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
@@ -102,17 +178,16 @@ constexpr auto integrate2(Func &&f, const Domain1 &cell1,
                std::declval<Scalar>());
 
   return_type res{};
-  auto points1_it = std::ranges::begin(QuadRule1::points);
-  auto weights1_it = std::ranges::begin(QuadRule1::weights);
-  auto points1_end = std::ranges::end(QuadRule1::points);
+  auto points1_it = begin(QuadRule1::points);
+  auto weights1_it = begin(QuadRule1::weights);
+  auto points1_end = end(QuadRule1::points);
   for (; points1_it != points1_end; ++points1_it, ++weights1_it) {
     const auto &ref_point1 = *points1_it;
     const auto weight1 = static_cast<Scalar>(*weights1_it);
     const auto point1 = ref_point1.to_domain(cell1);
-    for (auto weights2_it = std::begin(QuadRule2::weights),
-              points2_it = std::begin(QuadRule2::points);
-         points2_it != std::end(QuadRule2::points);
-         ++points2_it, ++weights2_it) {
+    for (auto weights2_it = begin(QuadRule2::weights),
+              points2_it = begin(QuadRule2::points);
+         points2_it != end(QuadRule2::points); ++points2_it, ++weights2_it) {
       const auto &ref_point2 = *points2_it;
       const auto weight2 = static_cast<Scalar>(*weights2_it);
       const auto point2 = ref_point2.to_domain(cell2);

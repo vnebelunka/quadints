@@ -115,5 +115,46 @@ public:
   using scalar_t = Scalar;
 };
 
+template <typename Scalar> struct SegmentQuadrature<Scalar, 10> {
+private:
+  static constexpr Scalar x1 = static_cast<Scalar>(
+      0.9739065285171717200779640120844520534282699466923821192312120666965952032346363);
+  static constexpr Scalar x2 = static_cast<Scalar>(
+      0.8650633666889845107320966884234930485275430149653304525214685658875966989000320);
+  static constexpr Scalar x3 = static_cast<Scalar>(
+      0.6794095682990244062343273651148735757692947118348071535252040881278921920444595);
+  static constexpr Scalar x4 = static_cast<Scalar>(
+      0.4333953941292471907992659431657841622000718376569433166413596319717463243873045);
+  static constexpr Scalar x5 = static_cast<Scalar>(
+      0.1488743389816312108848260011297199846175648594206916483384428743877307460622144);
+
+public:
+  static constexpr std::array<barycentric_segment<Scalar>, 10> points{
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x1)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x2)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x3)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x4)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) - x5)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x5)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x4)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x3)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x2)}},
+      barycentric_segment<Scalar>{{static_cast<Scalar>(0.5) * (static_cast<Scalar>(1) + x1)}}};
+
+  static constexpr std::array<Scalar, 10> weights{
+      static_cast<Scalar>(0.03333567215434406879678440494666589642823820608551598204015356424258997581453248),
+      static_cast<Scalar>(0.07472567457529029657288816982884866691415290708355741869924925540436220673325015),
+      static_cast<Scalar>(0.1095431812579910219977674671140815962293859352612735882077229208260666693450446),
+      static_cast<Scalar>(0.1346333596549981775456134607847346764294763870543239452843166158505128478406195),
+      static_cast<Scalar>(0.1477621123573764350869464973256691647105233585133517584253250798361767152264212),
+      static_cast<Scalar>(0.1477621123573764350869464973256691647105233585133517584253250798361767152264212),
+      static_cast<Scalar>(0.1346333596549981775456134607847346764294763870543239452843166158505128478406195),
+      static_cast<Scalar>(0.1095431812579910219977674671140815962293859352612735882077229208260666693450446),
+      static_cast<Scalar>(0.07472567457529029657288816982884866691415290708355741869924925540436220673325015),
+      static_cast<Scalar>(0.03333567215434406879678440494666589642823820608551598204015356424258997581453248)};
+
+  static constexpr std::size_t n_points = 10;
+};
+
 } // namespace quadints
 #endif // SEGMENT_QUADS_HPP

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(NumericalIntegration LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -32,7 +32,6 @@ if(BUILD_TESTS)
 
     add_executable(integration_tests
         test/segment_1d.cpp
-        test/triangle_2d.cpp
     )
     target_link_libraries(integration_tests
         PRIVATE
@@ -47,3 +46,9 @@ if(BUILD_TESTS)
     include(GoogleTest)
     gtest_discover_tests(integration_tests)
 endif()
+
+# ---------------------------
+# Benchmarking
+# ---------------------------
+
+add_subdirectory(benchmarks)
