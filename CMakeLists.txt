@@ -33,6 +33,8 @@ if(BUILD_TESTS)
     add_executable(integration_tests
         test/segment_1d.cpp
         test/triangle_2d.cpp
+        test/product.cpp
+        test/split_triangle.cpp
     )
     target_link_libraries(integration_tests
         PRIVATE

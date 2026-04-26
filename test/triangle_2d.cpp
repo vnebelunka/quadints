@@ -8,20 +8,6 @@
 
 using namespace quadints;
 
-struct Triangle {
-  using point_type = point2d;
-  std::array<point2d, 3> _vertices;
-  constexpr double mes() const {
-    // Compute the area of the triangle using the determinant formula
-    const auto &A = _vertices[0].coords;
-    const auto &B = _vertices[1].coords;
-    const auto &C = _vertices[2].coords;
-    return 0.5 * std::abs(A[0] * (B[1] - C[1]) + B[0] * (C[1] - A[1]) +
-                          C[0] * (A[1] - B[1]));
-  }
-  constexpr const std::array<point2d, 3> &vertices() const { return _vertices; }
-};
-
 // Test fixture
 class TriangleIntegrationTest : public ::testing::Test {
 protected:
@@ -116,4 +102,22 @@ TEST_F(TriangleIntegrationTest, Gauss4Rule_QuarticLambdaNotExact) {
   double result = integrate<TriangleGauss4Rule>(quartic, tri_unit);
   double exact_quartic = 1.0 / 30.0;
   EXPECT_NE(result, exact_quartic);
+}
+
+TEST_F(TriangleIntegrationTest, Gauss4Rule_exp2) {
+  auto f = [](point2d p) { return std::exp(p.coords[0] * p.coords[0]); };
+  double res1 = integrate<TriangleGauss4Rule>(f, tri_unit);
+  double res2 = integrate<TriangleGauss3Rule>(f, tri_unit);
+  std::cerr << res1 << " " << res2 << '\n';
+  double true_ans = 0.6035108319; // sqrt(pi)/2 erfi(1);
+  ASSERT_LE(std::abs(true_ans - res1), std::abs(true_ans - res2));
+}
+
+TEST_F(TriangleIntegrationTest, Gauss4Rule_exp) {
+  auto f = [](point2d p) { return std::exp(p.coords[0] + p.coords[1]); };
+  double res1 = integrate<TriangleGauss4Rule>(f, tri_unit);
+  double res2 = integrate<TriangleGauss3Rule>(f, tri_unit);
+  std::cerr << res1 << " " << res2 << '\n';
+  double true_ans = 1.0;
+  ASSERT_LE(std::abs(true_ans - res1), std::abs(true_ans - res2));
 }
