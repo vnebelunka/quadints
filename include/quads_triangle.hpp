@@ -3,12 +3,12 @@
 
 #include "interface.hpp"
 #include <array>
+#include <cassert>
 #include <cmath>
 
-#include <concepts>
 namespace quadints {
 template <typename T, typename Scalar>
-concept triangle = requires(const T &t) {
+concept triangle = requires(T t) {
   typename T::point_type;
   requires banach_vec<Scalar, typename T::point_type>;
   t.vertices();
@@ -18,6 +18,15 @@ concept triangle = requires(const T &t) {
 
 template <typename Scalar> struct barycentric_triangle {
   std::array<Scalar, 2> coords;
+  constexpr barycentric_triangle(Scalar x, Scalar y) : coords{x, y} {}
+  constexpr barycentric_triangle(Scalar x, Scalar y, Scalar z) : coords{x, y} {
+    assert(std::abs(x + y + z - 1) < 1e-10);
+  }
+  constexpr barycentric_triangle() : coords{0, 0} {}
+  constexpr Scalar x() const { return coords[0]; }
+  constexpr Scalar y() const { return coords[1]; }
+  constexpr Scalar z() const { return 1 - coords[0] - coords[1]; }
+
   template <typename triangle_t>
     requires triangle<triangle_t, Scalar>
   constexpr auto to_domain(const triangle_t &t) const {
@@ -31,11 +40,36 @@ template <typename Scalar> struct barycentric_triangle {
   }
 };
 
-template <typename Scalar, typename triangle_t>
-  requires triangle<triangle_t, Scalar>
-constexpr auto
-from_reference_domain(const barycentric_triangle<Scalar> &reference_point,
-                      const triangle_t &t) -> triangle_t::point_type {}
+template <typename Scalar> struct barycentric_direction {
+  std::array<Scalar, 2> dirs;
+  constexpr barycentric_direction(Scalar dx, Scalar dy) : dirs{dx, dy} {}
+  constexpr barycentric_direction(Scalar dx, Scalar dy, Scalar dz)
+      : dirs{dx, dy} {
+    assert(std::abs(dx + dy + dz) < 1e-10);
+  }
+};
+
+template <typename Scalar>
+constexpr barycentric_triangle<Scalar>
+operator+(const barycentric_triangle<Scalar> &c,
+          const barycentric_direction<Scalar> &d) {
+  return {c.coords[0] + d.dirs[0], c.coords[1] + d.dirs[1]};
+}
+template <typename Scalar>
+constexpr barycentric_triangle<Scalar>
+operator+(const barycentric_direction<Scalar> &d,
+          const barycentric_triangle<Scalar> &c) {
+  return c + d;
+}
+
+template <typename Scalar>
+constexpr barycentric_triangle<Scalar> &
+operator+=(barycentric_triangle<Scalar> &c,
+           const barycentric_direction<Scalar> &d) {
+  c.coords[0] += d.dirs[0];
+  c.coords[1] += d.dirs[1];
+  return c;
+}
 
 template <typename Scalar, unsigned int n_points> struct TriangleQuadrature {
   static_assert("We have no quadrature of such dimension and order");
