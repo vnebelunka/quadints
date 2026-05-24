@@ -59,11 +59,13 @@ concept integrable2 = requires(F f, arg1 x, arg2 y) {
   requires banach_vec<Scalar, decltype(f(x, y))>;
 };
 
+namespace detail {
+
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = decltype(*(QuadRule::weights.begin()))>
   requires quadrature_rule<QuadRule, Domain, Scalar> &&
            integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate(Func &&f, const Domain &cell)
+constexpr auto integrate_iter(Func &&f, const Domain &cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
   using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
   return_type res{};
@@ -80,6 +82,36 @@ constexpr auto integrate(Func &&f, const Domain &cell)
   return res * cell.mes();
 }
 
+template <
+    typename QuadRule, typename Domain, typename Func,
+    typename Scalar = std::decay_t<decltype(*(QuadRule::weights.begin()))>>
+  requires quadrature_rule<QuadRule, Domain, Scalar> &&
+           integrable<Func, typename Domain::point_type, Scalar>
+constexpr auto integrate_collect(Func &&f, const Domain &cell)
+    -> std::invoke_result_t<Func, typename Domain::point_type> {
+
+  using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+  return_type res{};
+  std::array<typename Domain::point_type, QuadRule::n_points> domain_points;
+  std::array<Scalar, QuadRule::n_points> weights_arr;
+  std::array<return_type, QuadRule::n_points> func_arr;
+  auto points_it = std::ranges::begin(QuadRule::points);
+  auto weights_it = std::ranges::begin(QuadRule::weights);
+  for (size_t i = 0; i < QuadRule::n_points; ++i, ++points_it) {
+    domain_points[i] = (*points_it).to_domain(cell);
+  }
+  for (size_t i = 0; i < QuadRule::n_points; ++i, ++weights_it) {
+    weights_arr[i] = static_cast<Scalar>(*weights_it);
+  }
+  for (size_t i = 0; i < QuadRule::n_points; ++i) {
+    func_arr[i] = std::invoke(f, domain_points[i]);
+  }
+  for (size_t i = 0; i < QuadRule::n_points; ++i) {
+    res += func_arr[i] * weights_arr[i];
+  }
+  return res * cell.mes();
+}
+
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
           typename Domain2, typename Func,
           typename Scalar = decltype(*(QuadRule1::weights.begin()))>
@@ -87,8 +119,8 @@ template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
            quadrature_rule<QuadRule2, Domain2, Scalar> &&
            integrable2<Func, typename Domain1::point_type,
                        typename Domain2::point_type, Scalar>
-constexpr auto integrate2(Func &&f, const Domain1 &cell1,
-                          const Domain2 &cell2) {
+constexpr auto integrate2_iter(Func &&f, const Domain1 &cell1,
+                               const Domain2 &cell2) {
   using return_type = std::invoke_result_t<Func, typename Domain1::point_type,
                                            typename Domain2::point_type>;
   return_type res{};
@@ -111,6 +143,29 @@ constexpr auto integrate2(Func &&f, const Domain1 &cell1,
   }
   return res * cell1.mes() * cell2.mes();
 };
+
+} // namespace detail
+
+template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
+          typename Domain2, typename Func,
+          typename Scalar = decltype(*(QuadRule1::weights.begin()))>
+  requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
+           quadrature_rule<QuadRule2, Domain2, Scalar> &&
+           integrable2<Func, typename Domain1::point_type,
+                       typename Domain2::point_type, Scalar>
+constexpr auto integrate2(Func &&f, const Domain1 &cell1,
+                          const Domain2 &cell2) {
+  return detail::integrate2_iter<QuadRule1, QuadRule2>(f, cell1, cell2);
+}
+
+template <typename QuadRule, typename Domain, typename Func,
+          typename Scalar = decltype(*(QuadRule::weights.begin()))>
+  requires quadrature_rule<QuadRule, Domain, Scalar> &&
+           integrable<Func, typename Domain::point_type, Scalar>
+constexpr auto integrate(Func &&f, const Domain &cell)
+    -> std::invoke_result_t<Func, typename Domain::point_type> {
+  return detail::integrate_collect<QuadRule>(f, cell);
+}
 
 } // namespace quadints
 #endif // INTERFACE_HPP

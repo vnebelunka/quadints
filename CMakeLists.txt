@@ -49,3 +49,5 @@ if(BUILD_TESTS)
     include(GoogleTest)
     gtest_discover_tests(integration_tests)
 endif()
+
+add_subdirectory(benchmarks)
