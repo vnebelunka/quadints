@@ -28,6 +28,19 @@ template <typename Scalar> struct barycentric_segment {
   }
 };
 
+template <size_t N_points, typename segment_t,
+          typename Scalar = segment_t::point_type>
+constexpr auto
+to_domain(const segment_t &s,
+          const std::array<barycentric_segment<Scalar>, N_points> &coords) {
+  std::array<Scalar, N_points> result;
+  auto len = s.end() - s.start();
+  for (size_t i = 0; i < N_points; ++i) {
+    result[i] = s.start() + len * coords[i].coords[0];
+  }
+  return result;
+}
+
 template <typename Scalar> struct SegmentQuadrature<Scalar, 1> {
   static constexpr std::array<barycentric_segment<Scalar>, 1> points{{0.5}};
   static constexpr std::array<Scalar, 1> weights{1.};

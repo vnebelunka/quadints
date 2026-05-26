@@ -43,10 +43,10 @@ concept quadrature_rule = requires() {
   requires domain<scalar, D>;
   { T::n_points } -> std::convertible_to<size_t>;
   T::points;
-  requires std::ranges::forward_range<decltype(T::points)>;
+  requires std::ranges::contiguous_range<decltype(T::points)>;
   T::weights;
-  requires std::ranges::forward_range<decltype(T::weights)>;
-  { *T::weights.begin() } -> std::convertible_to<scalar>;
+  requires std::ranges::contiguous_range<decltype(T::weights)>;
+  { T::weights[0] } -> std::convertible_to<scalar>;
   requires T::n_points == T::points.size() && T::n_points == T::weights.size();
 };
 
@@ -82,6 +82,15 @@ constexpr auto integrate_iter(Func &&f, const Domain &cell)
   return res * cell.mes();
 }
 
+template <typename Domain, typename RefPoint, typename DomainPoint,
+          std::size_t N>
+concept has_batch_to_domain =
+    requires(const Domain &cell, const std::array<RefPoint, N> &ref_pts) {
+      {
+        to_domain<N>(cell, ref_pts)
+      } -> std::convertible_to<std::array<DomainPoint, N>>;
+    };
+
 template <
     typename QuadRule, typename Domain, typename Func,
     typename Scalar = std::decay_t<decltype(*(QuadRule::weights.begin()))>>
@@ -89,25 +98,29 @@ template <
            integrable<Func, typename Domain::point_type, Scalar>
 constexpr auto integrate_collect(Func &&f, const Domain &cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
-
   using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
   return_type res{};
-  std::array<typename Domain::point_type, QuadRule::n_points> domain_points;
+
   std::array<Scalar, QuadRule::n_points> weights_arr;
   std::array<return_type, QuadRule::n_points> func_arr;
-  auto points_it = std::ranges::begin(QuadRule::points);
-  auto weights_it = std::ranges::begin(QuadRule::weights);
-  for (size_t i = 0; i < QuadRule::n_points; ++i, ++points_it) {
-    domain_points[i] = (*points_it).to_domain(cell);
-  }
-  for (size_t i = 0; i < QuadRule::n_points; ++i, ++weights_it) {
-    weights_arr[i] = static_cast<Scalar>(*weights_it);
+  std::array<typename Domain::point_type, QuadRule::n_points> domain_points;
+  if constexpr (has_batch_to_domain<Domain,
+                                    std::decay_t<decltype(*std::ranges::begin(
+                                        QuadRule::points))>,
+                                    typename Domain::point_type,
+                                    QuadRule::n_points>) {
+    domain_points = to_domain<QuadRule::n_points>(cell, QuadRule::points);
+  } else {
+    auto points_it = std::ranges::begin(QuadRule::points);
+    for (size_t i = 0; i < QuadRule::n_points; ++i, ++points_it) {
+      domain_points[i] = (*points_it).to_domain(cell);
+    }
   }
   for (size_t i = 0; i < QuadRule::n_points; ++i) {
     func_arr[i] = std::invoke(f, domain_points[i]);
   }
   for (size_t i = 0; i < QuadRule::n_points; ++i) {
-    res += func_arr[i] * weights_arr[i];
+    res += func_arr[i] * QuadRule::weights[i];
   }
   return res * cell.mes();
 }
