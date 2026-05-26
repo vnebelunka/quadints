@@ -39,6 +39,23 @@ template <typename Scalar> struct barycentric_triangle {
     return D;
   }
 };
+template <size_t N_POINTS, typename triangle_t,
+          typename Scalar = triangle_t::point_type>
+constexpr auto
+to_domain(const triangle_t &t,
+          const std::array<barycentric_triangle<Scalar>, N_POINTS> &coords) {
+  const auto &vertices = t.vertices();
+  const auto &A = vertices[0];
+  const auto &B = vertices[1];
+  const auto &C = vertices[2];
+  const auto CA = A + C * -1;
+  const auto CB = B + C * -1;
+  std::array<typename triangle_t::point_type, N_POINTS> result;
+  for (size_t i = 0; i < N_POINTS; ++i) {
+    result[i] = C + CA * coords[i].x() + CB * coords[i].y();
+  }
+  return result;
+}
 
 template <typename Scalar> struct barycentric_direction {
   std::array<Scalar, 2> dirs;
