@@ -182,7 +182,7 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
         }
         res += resj * wj;
     }
-    return res;
+    return res * cell1.mes() * cell2.mes();
 };
 
 }  // namespace detail
