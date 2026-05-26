@@ -28,6 +28,8 @@ struct Quadrature_product {
     }
   };
 
+  using point_type = barycentric_coord;
+
   constexpr static auto points = []() {
     std::array<barycentric_coord, n_points> arr{};
     size_t idx = 0;
