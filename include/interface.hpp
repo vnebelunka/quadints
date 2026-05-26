@@ -113,8 +113,6 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
     using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
     return_type res{};
-
-    std::array<Scalar, QuadRule::n_points> weights_arr;
     std::array<return_type, QuadRule::n_points> func_arr;
     auto domain_points = get_domain_points<QuadRule>(cell);
     if constexpr (has_batch_func<Func, typename Domain::point_type, QuadRule::n_points>) {
