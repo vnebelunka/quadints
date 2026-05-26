@@ -46,8 +46,8 @@ constexpr auto to_domain(const triangle_t& t, const std::array<barycentric_trian
     const auto& A = vertices[0];
     const auto& B = vertices[1];
     const auto& C = vertices[2];
-    const auto CA = A + C * -1;
-    const auto CB = B + C * -1;
+    const auto CA = A + C * static_cast<Scalar>(-1);
+    const auto CB = B + C * static_cast<Scalar>(-1);
     std::array<typename triangle_t::point_type, N_POINTS> result;
     for (size_t i = 0; i < N_POINTS; ++i) {
         result[i] = C + CA * coords[i].x() + CB * coords[i].y();
