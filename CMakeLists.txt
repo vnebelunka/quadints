@@ -18,7 +18,8 @@ target_include_directories(integration_lib INTERFACE
 # ------------------------------
 # Testing
 # ------------------------------
-option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_TESTS "Build unit tests" OFF)
+option(BUILD_BENCHMARK "build benchmarks" OFF)
 
 if(BUILD_TESTS)
     enable_testing()
@@ -50,4 +51,6 @@ if(BUILD_TESTS)
     gtest_discover_tests(integration_tests)
 endif()
 
-add_subdirectory(benchmarks)
+if (BUILD_BENCHMARK)
+    add_subdirectory(benchmarks)
+endif()
