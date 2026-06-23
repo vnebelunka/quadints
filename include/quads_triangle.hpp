@@ -83,6 +83,17 @@ constexpr barycentric_triangle<Scalar>& operator+=(barycentric_triangle<Scalar>&
     return c;
 }
 
+template<typename Scalar>
+constexpr barycentric_direction<Scalar> operator-(const barycentric_triangle<Scalar>& c,
+                                                  const barycentric_triangle<Scalar>& d) {
+    return {c.coords[0] - d.coords[0], c.coords[1] - d.coords[1]};
+}
+template<typename Scalar>
+constexpr barycentric_direction<Scalar> operator*(const barycentric_direction<Scalar>& c,
+                                                  Scalar s) {
+    return {c.dirs[0] * s, c.dirs[1] * s};
+}
+
 template <typename Scalar, unsigned int n_points>
 struct TriangleQuadrature {
     static_assert("We have no quadrature of such dimension and order");
