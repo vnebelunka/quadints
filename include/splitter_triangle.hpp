@@ -1,3 +1,4 @@
+#include <array>
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -10,21 +11,12 @@ template <typename Scalar, size_t depth>
 struct TriangleIterator {
     using point = barycentric_triangle<Scalar>;
 
-    class subtriangle {
-        std::array<point, 3> _vertices;
-
-       public:
-        auto operator[](size_t i) const { return _vertices[i]; }
-        auto operator[](size_t i) { return _vertices[i]; }
-        auto vertices() const { return _vertices; }
-    };
-
     using dir = barycentric_direction<Scalar>;
     static constexpr const double step = (1. / static_cast<double>(1u << depth));
     static constexpr auto dir_left = dir{-step, step, 0};
     static constexpr auto dir_down = dir{0, +step, -step};
     static constexpr auto dir_up = dir{-step, 0, step};
-    using bar_coords_t = subtriangle;
+    using bar_coords_t = std::array<point, 3>;
     bar_coords_t current_triangle = {};
     size_t pos = 0;
 
@@ -35,7 +27,8 @@ struct TriangleIterator {
     using pointer = const value_type*;
     using reference = const value_type&;
 
-    constexpr TriangleIterator(const bar_coords_t& coords, size_t pos = 0) : current_triangle(coords), pos(pos) {}
+    constexpr TriangleIterator(const std::array<point, 3>& coords, size_t pos = 0)
+        : current_triangle(coords), pos(pos) {}
     constexpr reference operator*() const { return current_triangle; }
     constexpr pointer operator->() const { return &current_triangle; }
 
@@ -65,7 +58,7 @@ struct TriangleIterator {
 
 template <typename Scalar, size_t depth>
 struct TriangleRange {
-    constexpr size_t size() const { return 1u << (2 * depth); }
+    constexpr static size_t size() { return 1u << (2 * depth); }
 
     constexpr TriangleIterator<Scalar, depth> begin() const {
         constexpr double step = 1. / static_cast<double>(1u << depth);
@@ -75,24 +68,51 @@ struct TriangleRange {
     constexpr TriangleIterator<Scalar, depth> end() const {
         return TriangleIterator<Scalar, depth>{{barycentric_triangle<Scalar>{0., 0.}, {0., 0.}, {0., 0.}}, size()};
     }
-    constexpr auto to_vector() const -> std::array<std::array<barycentric_triangle<Scalar>, 3>, 1u << (2 * depth)> {
-        std::vector<std::array<barycentric_triangle<Scalar>, 3>> tmp_vec;
-        for (const auto& tri : *this) {
-            tmp_vec.push_back(tri.vertices());
-        }
-        std::array<std::array<barycentric_triangle<Scalar>, 3>, 1u << (2 * depth)> result;
+    constexpr auto to_vector() const -> std::array<std::array<barycentric_triangle<Scalar>, 3>, size()> {
+        std::vector<std::array<barycentric_triangle<Scalar>, 3>> tmp_vec(this->begin(), this->end());
+        std::array<std::array<barycentric_triangle<Scalar>, 3>, size()> result;
         std::copy(tmp_vec.begin(), tmp_vec.end(), result.begin());
         return result;
     }
     template <typename QuadRule>
-    constexpr auto collect_quadrature() {
-        std::vector<barycentric_triangle<Scalar>> bar_points;
-        bar_points.reserve(QuadRule::n_points * (1u << (2 * depth)));
+    constexpr auto collect_quadrature_points() const {
+        using bar_point = barycentric_triangle<Scalar>;
+        using bar_dir = barycentric_direction<Scalar>;
+        std::array<bar_point, QuadRule::n_points * size()> bar_points;
+        size_t triangle_counter = 0;
         for (const auto& tri : *this) {
-            auto triangle_bar_points = to_domain<QuadRule::n_points>(tri, QuadRule::points);
-            bar_points.insert(bar_points.end(), triangle_bar_points.begin(), triangle_bar_points.end());
+            const bar_point& A = tri[0];
+            const bar_point& B = tri[1];
+            const bar_point& C = tri[2];
+            const bar_dir CA = A - C;
+            const bar_dir CB = B - C;
+            for (size_t i = 0; i < QuadRule::n_points; ++i) {
+                bar_points[triangle_counter * QuadRule::n_points + i] =
+                    C + CA * QuadRule::points[i].x() + CB * QuadRule::points[i].y();
+            }
+            ++triangle_counter;
         }
         return bar_points;
     }
+};
+
+template <typename BaseQuadRule, size_t depth, typename Scalar>
+struct CollectedQuadrature {
+    using range = TriangleRange<Scalar, depth>;
+    static constexpr size_t n_points = BaseQuadRule::n_points * range::size();
+    using point_type = barycentric_triangle<Scalar>;
+    static constexpr std::array<point_type, n_points> make_points() {
+        constexpr range r;
+        return r.template collect_quadrature_points<BaseQuadRule>();
+    }
+    static constexpr std::array<Scalar, n_points> make_weights() {
+        std::array<Scalar, n_points> result;
+        for (size_t i = 0; i < n_points; ++i) {
+            result[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range::size();
+        }
+        return result;
+    }
+    static constexpr std::array<point_type, n_points> points = make_points();
+    static constexpr std::array<Scalar, n_points> weights = make_weights();
 };
 }  // namespace quadints
