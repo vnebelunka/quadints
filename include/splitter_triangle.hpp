@@ -12,13 +12,13 @@ struct TriangleIterator {
     using point = barycentric_triangle<Scalar>;
 
     using dir = barycentric_direction<Scalar>;
-    static constexpr const double step = (1. / static_cast<double>(1u << depth));
-    static constexpr auto dir_right = dir{-step, step, 0};
-    static constexpr auto dir_left = dir{step, -step, 0};
-    static constexpr auto dir_up = dir{-step, 0, step};
+    static constexpr size_t levels = 1u << depth;
+    static constexpr Scalar step = (1. / static_cast<Scalar>(levels));
     using bar_coords_t = std::array<point, 3>;
     bar_coords_t current_triangle = {};
-    size_t pos = 0;
+    size_t cur_level = 0;
+    size_t cur_pos = 0;
+    bool upper = true;
 
    public:
     using iterator_category = std::forward_iterator_tag;
@@ -27,51 +27,69 @@ struct TriangleIterator {
     using pointer = const value_type*;
     using reference = const value_type&;
 
-    constexpr TriangleIterator(const std::array<point, 3>& coords, size_t pos = 0)
-        : current_triangle(coords), pos(pos) {}
+    constexpr TriangleIterator(size_t cur_level, size_t cur_pos, bool upper)
+        : cur_level(cur_level), cur_pos(cur_pos), upper(upper) {
+        point A{cur_pos * step, cur_level * step};
+        point B{(cur_pos + 1) * step, cur_level * step};
+        point C{cur_pos * step, (cur_level + 1) * step};
+        current_triangle = bar_coords_t{A, B, C};
+    }
     constexpr reference operator*() const { return current_triangle; }
     constexpr pointer operator->() const { return &current_triangle; }
 
     constexpr TriangleIterator& operator++() noexcept {
-        ++pos;
-
-        auto& cur_down_point = current_triangle[0];
-        auto& cur_up_point = current_triangle[1];
-        // if level != 1 and triangle was above edge
-        if (current_triangle[2].y() > current_triangle[0].y() && current_triangle[0].y() != 0) {
-            current_triangle[2] = cur_up_point + dir_left;
-            return *this;
+        ++cur_pos;
+        if (upper) {
+            if (cur_pos + cur_level >= levels) {
+                ++cur_level;
+                cur_pos = 0;
+                if (cur_level == levels) {
+                    upper = false;
+                    cur_level = 0;
+                };
+            }
+        } else {
+            if (cur_pos + cur_level >= levels - 1) {
+                ++cur_level;
+                cur_pos = 0;
+            }
         }
-        cur_down_point += dir_up;
-        cur_up_point += dir_up;
-        // can't go left -> go to next level
-        if (cur_up_point.x() < 0) {
-            cur_down_point = {1 - current_triangle[0].y() - step, current_triangle[0].y() + step, 0};
-            cur_up_point = cur_down_point + dir_up;
+        point A, B, C;
+        if (upper) {
+            A = {cur_pos * step, cur_level * step};
+            B = {(cur_pos + 1) * step, cur_level * step};
+            C = {cur_pos * step, (cur_level + 1) * step};
+        } else {
+            A = {(cur_pos + 1) * step, cur_level * step};
+            B = {(cur_pos + 1) * step, (cur_level + 1) * step};
+            C = {cur_pos * step, (cur_level + 1) * step};
         }
-        current_triangle[2] = cur_down_point + dir_right;
+        current_triangle = bar_coords_t{A, B, C};
         return *this;
     }
-    constexpr bool operator==(const TriangleIterator& other) const { return pos == other.pos; }
+    constexpr bool operator==(const TriangleIterator& other) const {
+        return cur_level == other.cur_level && cur_pos == other.cur_pos && upper == other.upper;
+    }
     constexpr bool operator!=(const TriangleIterator& other) const { return !(*this == other); }
 };
 
 template <typename Scalar, size_t depth>
 struct TriangleRange {
     constexpr static size_t size() { return 1u << (2 * depth); }
-
     constexpr TriangleIterator<Scalar, depth> begin() const {
         constexpr double step = 1. / static_cast<double>(1u << depth);
-        return TriangleIterator<Scalar, depth>(
-            {barycentric_triangle<Scalar>{1., 0., 0}, {1 - step, 0, step}, {1 - step, step, 0}}, 0);
+
+        return TriangleIterator<Scalar, depth>(0, 0, true);
     }
     constexpr TriangleIterator<Scalar, depth> end() const {
-        return TriangleIterator<Scalar, depth>{{barycentric_triangle<Scalar>{0., 0.}, {0., 0.}, {0., 0.}}, size()};
+        return TriangleIterator<Scalar, depth>{(1 << depth) - 1, 0, false};
     }
     constexpr auto to_vector() const -> std::array<std::array<barycentric_triangle<Scalar>, 3>, size()> {
-        std::vector<std::array<barycentric_triangle<Scalar>, 3>> tmp_vec(this->begin(), this->end());
         std::array<std::array<barycentric_triangle<Scalar>, 3>, size()> result;
-        std::copy(tmp_vec.begin(), tmp_vec.end(), result.begin());
+        int i = 0;
+        for (auto it = this->begin(); it != this->end(); ++it, ++i) {
+            result[i] = *it;
+        }
         return result;
     }
     template <typename QuadRule>

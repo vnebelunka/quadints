@@ -42,6 +42,9 @@ class AdaptiveIntegrator {
             case 6:
                 cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 6, Scalar>>(f, cell);
                 break;
+            case 7:
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 7, Scalar>>(f, cell);
+                break;
             default:
                 throw std::runtime_error("Invalid level");
         }

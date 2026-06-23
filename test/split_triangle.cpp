@@ -17,8 +17,16 @@ TEST(split_triangle, depth0) {
     auto qp = TriangleRange<double, 0>().to_vector();
     ASSERT_EQ(qp.size(), 1);
     for (auto tqp : qp) {
-        ASSERT_TRUE(tqp[0].to_domain(tri) == a);
-        ASSERT_TRUE(tqp[1].to_domain(tri) == c);
+        std::cerr << "tqp:\n";
+        std::cerr << tqp[0].x() << " " << tqp[0].y() << std::endl;
+        std::cerr << tqp[1].x() << " " << tqp[1].y() << std::endl;
+        std::cerr << tqp[2].x() << " " << tqp[2].y() << std::endl;
+        std::cerr << "domain:\n";
+        std::cerr << tqp[0].to_domain(tri).coords[0] << " " << tqp[0].to_domain(tri).coords[1] << std::endl;
+        std::cerr << tqp[1].to_domain(tri).coords[0] << " " << tqp[1].to_domain(tri).coords[1] << std::endl;
+        std::cerr << tqp[2].to_domain(tri).coords[0] << " " << tqp[2].to_domain(tri).coords[1] << std::endl;
+        ASSERT_TRUE(tqp[0].to_domain(tri) == c);
+        ASSERT_TRUE(tqp[1].to_domain(tri) == a);
         ASSERT_TRUE(tqp[2].to_domain(tri) == b);
     }
 }
