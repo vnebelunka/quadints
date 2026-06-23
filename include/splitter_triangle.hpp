@@ -13,8 +13,8 @@ struct TriangleIterator {
 
     using dir = barycentric_direction<Scalar>;
     static constexpr const double step = (1. / static_cast<double>(1u << depth));
-    static constexpr auto dir_left = dir{-step, step, 0};
-    static constexpr auto dir_down = dir{0, +step, -step};
+    static constexpr auto dir_right = dir{-step, step, 0};
+    static constexpr auto dir_left = dir{step, -step, 0};
     static constexpr auto dir_up = dir{-step, 0, step};
     using bar_coords_t = std::array<point, 3>;
     bar_coords_t current_triangle = {};
@@ -35,21 +35,21 @@ struct TriangleIterator {
     constexpr TriangleIterator& operator++() noexcept {
         ++pos;
 
-        auto& cur_right_point = current_triangle[0];
-        auto& cur_left_point = current_triangle[1];
+        auto& cur_down_point = current_triangle[0];
+        auto& cur_up_point = current_triangle[1];
         // if level != 1 and triangle was above edge
-        if (current_triangle[2].z() > current_triangle[0].z() && current_triangle[0].z() != 0) {
-            current_triangle[2] = cur_right_point + dir_down;
+        if (current_triangle[2].y() > current_triangle[0].y() && current_triangle[0].y() != 0) {
+            current_triangle[2] = cur_up_point + dir_left;
             return *this;
         }
-        cur_right_point += dir_left;
-        cur_left_point += dir_left;
+        cur_down_point += dir_up;
+        cur_up_point += dir_up;
         // can't go left -> go to next level
-        if (cur_left_point.x() < 0) {
-            cur_right_point = {1 - current_triangle[0].z() - step, 0., current_triangle[0].z() + step};
-            cur_left_point = cur_right_point + dir_left;
+        if (cur_up_point.x() < 0) {
+            cur_down_point = {1 - current_triangle[0].y() - step, current_triangle[0].y() + step, 0};
+            cur_up_point = cur_down_point + dir_up;
         }
-        current_triangle[2] = cur_right_point + dir_up;
+        current_triangle[2] = cur_down_point + dir_right;
         return *this;
     }
     constexpr bool operator==(const TriangleIterator& other) const { return pos == other.pos; }
@@ -63,7 +63,7 @@ struct TriangleRange {
     constexpr TriangleIterator<Scalar, depth> begin() const {
         constexpr double step = 1. / static_cast<double>(1u << depth);
         return TriangleIterator<Scalar, depth>(
-            {barycentric_triangle<Scalar>{1., 0., 0}, {1 - step, step, 0.}, {1 - step, 0., step}}, 0);
+            {barycentric_triangle<Scalar>{1., 0., 0}, {1 - step, 0, step}, {1 - step, step, 0}}, 0);
     }
     constexpr TriangleIterator<Scalar, depth> end() const {
         return TriangleIterator<Scalar, depth>{{barycentric_triangle<Scalar>{0., 0.}, {0., 0.}, {0., 0.}}, size()};
