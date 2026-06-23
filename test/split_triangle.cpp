@@ -18,8 +18,8 @@ TEST(split_triangle, depth0) {
     ASSERT_EQ(qp.size(), 1);
     for (auto tqp : qp) {
         ASSERT_TRUE(tqp[0].to_domain(tri) == a);
-        ASSERT_TRUE(tqp[1].to_domain(tri) == b);
-        ASSERT_TRUE(tqp[2].to_domain(tri) == c);
+        ASSERT_TRUE(tqp[1].to_domain(tri) == c);
+        ASSERT_TRUE(tqp[2].to_domain(tri) == b);
     }
 }
 
@@ -94,4 +94,13 @@ TEST(split_triangle, depth1_midpoint_quadrature) {
         ASSERT_NEAR(points[i].y(), expected[i][1], 1e-15);
         ASSERT_NEAR(points[i].z(), expected[i][2], 1e-15);
     }
+}
+
+TEST(split_triangle, depth1_midpoint_quadrature_integration) {
+    using quad = CollectedQuadrature<TriangleQuadrature<double, 1>, 1, double>;
+    auto constant = [](point2d) { return 5.0; };
+    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+    auto result = integrate<quad>(constant, tri_unit);
+    double exact = 5.0 * tri_unit.mes();
+    EXPECT_NEAR(result, exact, 1e-12);
 }

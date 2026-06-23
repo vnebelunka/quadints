@@ -14,54 +14,33 @@ struct IntegrationParams {
 
 template <typename Quadrule, typename Domain, typename Scalar>
 class AdaptiveIntegrator {
-    template <size_t L, typename Func>
-        requires quadrature_rule<Quadrule, Domain, Scalar> && integrable<Func, typename Domain::point_type, Scalar>
-    constexpr auto integrate_over_level(Func&& f, const Domain& cell)
-        -> std::invoke_result_t<Func, typename Domain::point_type> {
-        using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
-        using cur_quad = CollectedQuadrature<Quadrule, L, Scalar>;
-        auto domain_points = quadints::detail::get_domain_points<cur_quad>(cell);
-        std::array<return_type, cur_quad::n_points> func_arr;
-        if constexpr (quadints::detail::has_batch_func<Func, typename Domain::point_type, cur_quad::n_points>) {
-            func_arr = std::invoke(f, domain_points);
-        } else {
-            for (size_t i = 0; i < cur_quad::n_points; ++i) {
-                func_arr[i] = std::invoke(f, domain_points[i]);
-            }
-        }
-        return_type cur_res{};
-        for (size_t i = 0; i < cur_quad::n_points; ++i) {
-            cur_res += func_arr[i] * cur_quad::weights[i];
-        }
-        return cur_res * cell.mes();
-    }
-
     template <typename Func>
     constexpr auto integrate_over_level_runtime(Func&& f, const Domain& cell, size_t level)
         -> std::invoke_result_t<Func, typename Domain::point_type> {
         using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
         return_type cur_res{};
+        // 4^6 = 4096 is limit for constexpr evaluation of quadrature.
         switch (level) {
             case 0:
-                cur_res = integrate_over_level<0>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 0, Scalar>>(f, cell);
                 break;
             case 1:
-                cur_res = integrate_over_level<1>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 1, Scalar>>(f, cell);
                 break;
             case 2:
-                cur_res = integrate_over_level<2>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 2, Scalar>>(f, cell);
                 break;
             case 3:
-                cur_res = integrate_over_level<3>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 3, Scalar>>(f, cell);
                 break;
             case 4:
-                cur_res = integrate_over_level<4>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 4, Scalar>>(f, cell);
                 break;
             case 5:
-                cur_res = integrate_over_level<5>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 5, Scalar>>(f, cell);
                 break;
             case 6:
-                cur_res = integrate_over_level<6>(f, cell);
+                cur_res = quadints::integrate<CollectedQuadrature<Quadrule, 6, Scalar>>(f, cell);
                 break;
             default:
                 throw std::runtime_error("Invalid level");
