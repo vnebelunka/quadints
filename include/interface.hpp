@@ -76,6 +76,10 @@ constexpr auto integrate_iter(Func&& f, const Domain& cell) -> std::invoke_resul
     return res * cell.mes();
 }
 
+template <std::size_t N, typename Domain, typename RefPoint>
+auto to_domain(const Domain& cell, const std::array<RefPoint, N>& ref_pts)
+    -> std::enable_if_t<false, std::array<typename Domain::point_type, N>>;
+
 template <typename Domain, typename RefPoint, typename DomainPoint, std::size_t N>
 concept has_batch_to_domain = requires(const Domain& cell, const std::array<RefPoint, N>& ref_pts) {
     { to_domain<N>(cell, ref_pts) } -> std::convertible_to<std::array<DomainPoint, N>>;
