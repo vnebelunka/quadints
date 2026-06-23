@@ -9,13 +9,22 @@ namespace quadints {
 template <typename Scalar, size_t depth>
 struct TriangleIterator {
     using point = barycentric_triangle<Scalar>;
+
+    class subtriangle {
+        std::array<point, 3> _vertices;
+
+       public:
+        auto operator[](size_t i) const { return _vertices[i]; }
+        auto operator[](size_t i) { return _vertices[i]; }
+        auto vertices() const { return _vertices; }
+    };
+
     using dir = barycentric_direction<Scalar>;
-    static constexpr const double step =
-        (1. / static_cast<double>(1u << depth));
+    static constexpr const double step = (1. / static_cast<double>(1u << depth));
     static constexpr auto dir_left = dir{-step, step, 0};
     static constexpr auto dir_down = dir{0, +step, -step};
     static constexpr auto dir_up = dir{-step, 0, step};
-    using bar_coords_t = std::array<point, 3>;
+    using bar_coords_t = subtriangle;
     bar_coords_t current_triangle = {};
     size_t pos = 0;
 
@@ -26,8 +35,7 @@ struct TriangleIterator {
     using pointer = const value_type*;
     using reference = const value_type&;
 
-    constexpr TriangleIterator(const bar_coords_t& coords, size_t pos = 0)
-        : current_triangle(coords), pos(pos) {}
+    constexpr TriangleIterator(const bar_coords_t& coords, size_t pos = 0) : current_triangle(coords), pos(pos) {}
     constexpr reference operator*() const { return current_triangle; }
     constexpr pointer operator->() const { return &current_triangle; }
 
@@ -37,8 +45,7 @@ struct TriangleIterator {
         auto& cur_right_point = current_triangle[0];
         auto& cur_left_point = current_triangle[1];
         // if level != 1 and triangle was above edge
-        if (current_triangle[2].z() > current_triangle[0].z() &&
-            current_triangle[0].z() != 0) {
+        if (current_triangle[2].z() > current_triangle[0].z() && current_triangle[0].z() != 0) {
             current_triangle[2] = cur_right_point + dir_down;
             return *this;
         }
@@ -46,19 +53,14 @@ struct TriangleIterator {
         cur_left_point += dir_left;
         // can't go left -> go to next level
         if (cur_left_point.x() < 0) {
-            cur_right_point = {1 - current_triangle[0].z() - step, 0.,
-                               current_triangle[0].z() + step};
+            cur_right_point = {1 - current_triangle[0].z() - step, 0., current_triangle[0].z() + step};
             cur_left_point = cur_right_point + dir_left;
         }
         current_triangle[2] = cur_right_point + dir_up;
         return *this;
     }
-    constexpr bool operator==(const TriangleIterator& other) const {
-        return pos == other.pos;
-    }
-    constexpr bool operator!=(const TriangleIterator& other) const {
-        return !(*this == other);
-    }
+    constexpr bool operator==(const TriangleIterator& other) const { return pos == other.pos; }
+    constexpr bool operator!=(const TriangleIterator& other) const { return !(*this == other); }
 };
 
 template <typename Scalar, size_t depth>
@@ -68,27 +70,29 @@ struct TriangleRange {
     constexpr TriangleIterator<Scalar, depth> begin() const {
         constexpr double step = 1. / static_cast<double>(1u << depth);
         return TriangleIterator<Scalar, depth>(
-            {barycentric_triangle<Scalar>{1., 0., 0},
-             {1 - step, step, 0.},
-             {1 - step, 0., step}},
-            0);
+            {barycentric_triangle<Scalar>{1., 0., 0}, {1 - step, step, 0.}, {1 - step, 0., step}}, 0);
     }
     constexpr TriangleIterator<Scalar, depth> end() const {
-        return TriangleIterator<Scalar, depth>{
-            {barycentric_triangle<Scalar>{0., 0.}, {0., 0.}, {0., 0.}}, size()};
+        return TriangleIterator<Scalar, depth>{{barycentric_triangle<Scalar>{0., 0.}, {0., 0.}, {0., 0.}}, size()};
     }
-    constexpr auto to_vector() const
-        -> std::array<std::array<barycentric_triangle<Scalar>, 3>,
-                      1u << (2 * depth)> {
+    constexpr auto to_vector() const -> std::array<std::array<barycentric_triangle<Scalar>, 3>, 1u << (2 * depth)> {
         std::vector<std::array<barycentric_triangle<Scalar>, 3>> tmp_vec;
         for (const auto& tri : *this) {
-            tmp_vec.push_back(tri);
+            tmp_vec.push_back(tri.vertices());
         }
-        std::array<std::array<barycentric_triangle<Scalar>, 3>,
-                   1u << (2 * depth)>
-            result;
+        std::array<std::array<barycentric_triangle<Scalar>, 3>, 1u << (2 * depth)> result;
         std::copy(tmp_vec.begin(), tmp_vec.end(), result.begin());
         return result;
+    }
+    template <typename QuadRule>
+    constexpr auto collect_quadrature() {
+        std::vector<barycentric_triangle<Scalar>> bar_points;
+        bar_points.reserve(QuadRule::n_points * (1u << (2 * depth)));
+        for (const auto& tri : *this) {
+            auto triangle_bar_points = to_domain<QuadRule::n_points>(tri, QuadRule::points);
+            bar_points.insert(bar_points.end(), triangle_bar_points.begin(), triangle_bar_points.end());
+        }
+        return bar_points;
     }
 };
 }  // namespace quadints
