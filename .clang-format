@@ -1,0 +1,9 @@
+# Use a predefined style as a base (e.g., LLVM, Google, Chromium, WebKit, Microsoft)
+
+BasedOnStyle: Google
+
+# General Indentation
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
