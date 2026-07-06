@@ -11,12 +11,12 @@ namespace quadints {
 
 template <typename T, typename scalar>
 concept has_norm = requires(T t) {
-  { norm(t) } -> std::convertible_to<scalar>;
+    { norm(t) } -> std::convertible_to<scalar>;
 };
 
 template <typename T, typename scalar>
 concept has_abs = requires(T t) {
-  { std::abs(t) } -> std::convertible_to<scalar>;
+    { std::abs(t) } -> std::convertible_to<scalar>;
 };
 
 template <typename T, typename scalar>
@@ -24,30 +24,31 @@ concept has_magnitude = has_norm<T, scalar> || has_abs<T, scalar>;
 
 template <typename scalar, typename T>
 concept banach_vec = requires(scalar alpha, T t, T u) {
-  t + u;
-  t * alpha;
-  alpha * t;
-  t += u;
-  t *= alpha;
-  requires has_magnitude<T, scalar>;
+    t + u;
+    t * alpha;
+    alpha * t;
+    t += u;
+    t *= alpha;
+    requires has_magnitude<T, scalar>;
 };
 
 template <typename scalar, typename T>
 concept domain = requires(T t) {
-  typename T::point_type;
-  { t.mes() } -> std::convertible_to<scalar>;
+    typename T::point_type;
+    { t.mes() } -> std::convertible_to<scalar>;
 };
 
 template <typename T, typename D, typename scalar>
 concept quadrature_rule = requires() {
-  requires domain<scalar, D>;
-  { T::n_points } -> std::convertible_to<size_t>;
-  T::points;
-  requires std::ranges::forward_range<decltype(T::points)>;
-  T::weights;
-  requires std::ranges::forward_range<decltype(T::weights)>;
-  { *T::weights.begin() } -> std::convertible_to<scalar>;
-  requires T::n_points == T::points.size() && T::n_points == T::weights.size();
+    requires domain<scalar, D>;
+    { T::n_points } -> std::convertible_to<size_t>;
+    T::points;
+    requires std::ranges::forward_range<decltype(T::points)>;
+    T::weights;
+    requires std::ranges::forward_range<decltype(T::weights)>;
+    { *T::weights.begin() } -> std::convertible_to<scalar>;
+    requires T::n_points == T::points.size() &&
+                     T::n_points == T::weights.size();
 };
 
 template <typename F, typename arg, typename Scalar>
@@ -56,116 +57,116 @@ concept integrable =
 
 template <typename F, typename arg1, typename arg2, typename Scalar>
 concept integrable2 = requires(F f, arg1 x, arg2 y) {
-  requires banach_vec<Scalar, decltype(f(x, y))>;
+    requires banach_vec<Scalar, decltype(f(x, y))>;
 };
 
 namespace detail {
 
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = decltype(*(QuadRule::weights.begin()))>
-  requires quadrature_rule<QuadRule, Domain, Scalar> &&
-           integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate_iter(Func &&f, const Domain &cell)
+    requires quadrature_rule<QuadRule, Domain, Scalar> &&
+             integrable<Func, typename Domain::point_type, Scalar>
+constexpr auto integrate_iter(Func&& f, const Domain& cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
-  using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
-  return_type res{};
-  auto points_it = std::ranges::begin(QuadRule::points);
-  auto weights_it = std::ranges::begin(QuadRule::weights);
-  const auto points_end = std::ranges::end(QuadRule::points);
+    using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+    return_type res{};
+    auto points_it = std::ranges::begin(QuadRule::points);
+    auto weights_it = std::ranges::begin(QuadRule::weights);
+    const auto points_end = std::ranges::end(QuadRule::points);
 
-  for (; points_it != points_end; ++points_it, ++weights_it) {
-    const auto &ref_point = *points_it;
-    const auto weight = static_cast<Scalar>(*weights_it); // convert to Scalar
-    const auto point = ref_point.to_domain(cell);
-    res += std::invoke(f, point) * weight;
-  }
-  return res * cell.mes();
+    for (; points_it != points_end; ++points_it, ++weights_it) {
+        const auto& ref_point = *points_it;
+        const auto weight =
+            static_cast<Scalar>(*weights_it);  // convert to Scalar
+        const auto point = ref_point.to_domain(cell);
+        res += std::invoke(f, point) * weight;
+    }
+    return res * cell.mes();
 }
 
 template <
     typename QuadRule, typename Domain, typename Func,
     typename Scalar = std::decay_t<decltype(*(QuadRule::weights.begin()))>>
-  requires quadrature_rule<QuadRule, Domain, Scalar> &&
-           integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate_collect(Func &&f, const Domain &cell)
+    requires quadrature_rule<QuadRule, Domain, Scalar> &&
+             integrable<Func, typename Domain::point_type, Scalar>
+constexpr auto integrate_collect(Func&& f, const Domain& cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
-
-  using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
-  return_type res{};
-  std::array<typename Domain::point_type, QuadRule::n_points> domain_points;
-  std::array<Scalar, QuadRule::n_points> weights_arr;
-  std::array<return_type, QuadRule::n_points> func_arr;
-  auto points_it = std::ranges::begin(QuadRule::points);
-  auto weights_it = std::ranges::begin(QuadRule::weights);
-  for (size_t i = 0; i < QuadRule::n_points; ++i, ++points_it) {
-    domain_points[i] = (*points_it).to_domain(cell);
-  }
-  for (size_t i = 0; i < QuadRule::n_points; ++i, ++weights_it) {
-    weights_arr[i] = static_cast<Scalar>(*weights_it);
-  }
-  for (size_t i = 0; i < QuadRule::n_points; ++i) {
-    func_arr[i] = std::invoke(f, domain_points[i]);
-  }
-  for (size_t i = 0; i < QuadRule::n_points; ++i) {
-    res += func_arr[i] * weights_arr[i];
-  }
-  return res * cell.mes();
+    using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+    return_type res{};
+    std::array<typename Domain::point_type, QuadRule::n_points> domain_points;
+    std::array<Scalar, QuadRule::n_points> weights_arr;
+    std::array<return_type, QuadRule::n_points> func_arr;
+    auto points_it = std::ranges::begin(QuadRule::points);
+    auto weights_it = std::ranges::begin(QuadRule::weights);
+    for (size_t i = 0; i < QuadRule::n_points; ++i, ++points_it) {
+        domain_points[i] = (*points_it).to_domain(cell);
+    }
+    for (size_t i = 0; i < QuadRule::n_points; ++i, ++weights_it) {
+        weights_arr[i] = static_cast<Scalar>(*weights_it);
+    }
+    for (size_t i = 0; i < QuadRule::n_points; ++i) {
+        func_arr[i] = std::invoke(f, domain_points[i]);
+    }
+    for (size_t i = 0; i < QuadRule::n_points; ++i) {
+        res += func_arr[i] * weights_arr[i];
+    }
+    return res * cell.mes();
 }
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
           typename Domain2, typename Func,
           typename Scalar = decltype(*(QuadRule1::weights.begin()))>
-  requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
-           quadrature_rule<QuadRule2, Domain2, Scalar> &&
-           integrable2<Func, typename Domain1::point_type,
-                       typename Domain2::point_type, Scalar>
-constexpr auto integrate2_iter(Func &&f, const Domain1 &cell1,
-                               const Domain2 &cell2) {
-  using return_type = std::invoke_result_t<Func, typename Domain1::point_type,
-                                           typename Domain2::point_type>;
-  return_type res{};
-  auto points1_it = std::ranges::begin(QuadRule1::points);
-  auto weights1_it = std::ranges::begin(QuadRule1::weights);
-  auto points1_end = std::ranges::end(QuadRule1::points);
-  for (; points1_it != points1_end; ++points1_it, ++weights1_it) {
-    const auto &ref_point1 = *points1_it;
-    const auto weight1 = static_cast<Scalar>(*weights1_it);
-    const auto point1 = ref_point1.to_domain(cell1);
-    for (auto weights2_it = std::begin(QuadRule2::weights),
-              points2_it = std::begin(QuadRule2::points);
-         points2_it != std::end(QuadRule2::points);
-         ++points2_it, ++weights2_it) {
-      const auto &ref_point2 = *points2_it;
-      const auto weight2 = static_cast<Scalar>(*weights2_it);
-      const auto point2 = ref_point2.to_domain(cell2);
-      res += std::invoke(f, point1, point2) * weight1 * weight2;
+    requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
+             quadrature_rule<QuadRule2, Domain2, Scalar> &&
+             integrable2<Func, typename Domain1::point_type,
+                         typename Domain2::point_type, Scalar>
+constexpr auto integrate2_iter(Func&& f, const Domain1& cell1,
+                               const Domain2& cell2) {
+    using return_type = std::invoke_result_t<Func, typename Domain1::point_type,
+                                             typename Domain2::point_type>;
+    return_type res{};
+    auto points1_it = std::ranges::begin(QuadRule1::points);
+    auto weights1_it = std::ranges::begin(QuadRule1::weights);
+    auto points1_end = std::ranges::end(QuadRule1::points);
+    for (; points1_it != points1_end; ++points1_it, ++weights1_it) {
+        const auto& ref_point1 = *points1_it;
+        const auto weight1 = static_cast<Scalar>(*weights1_it);
+        const auto point1 = ref_point1.to_domain(cell1);
+        for (auto weights2_it = std::begin(QuadRule2::weights),
+                  points2_it = std::begin(QuadRule2::points);
+             points2_it != std::end(QuadRule2::points);
+             ++points2_it, ++weights2_it) {
+            const auto& ref_point2 = *points2_it;
+            const auto weight2 = static_cast<Scalar>(*weights2_it);
+            const auto point2 = ref_point2.to_domain(cell2);
+            res += std::invoke(f, point1, point2) * weight1 * weight2;
+        }
     }
-  }
-  return res * cell1.mes() * cell2.mes();
+    return res * cell1.mes() * cell2.mes();
 };
 
-} // namespace detail
+}  // namespace detail
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1,
           typename Domain2, typename Func,
           typename Scalar = decltype(*(QuadRule1::weights.begin()))>
-  requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
-           quadrature_rule<QuadRule2, Domain2, Scalar> &&
-           integrable2<Func, typename Domain1::point_type,
-                       typename Domain2::point_type, Scalar>
-constexpr auto integrate2(Func &&f, const Domain1 &cell1,
-                          const Domain2 &cell2) {
-  return detail::integrate2_iter<QuadRule1, QuadRule2>(f, cell1, cell2);
+    requires quadrature_rule<QuadRule1, Domain1, Scalar> &&
+             quadrature_rule<QuadRule2, Domain2, Scalar> &&
+             integrable2<Func, typename Domain1::point_type,
+                         typename Domain2::point_type, Scalar>
+constexpr auto integrate2(Func&& f, const Domain1& cell1,
+                          const Domain2& cell2) {
+    return detail::integrate2_iter<QuadRule1, QuadRule2>(f, cell1, cell2);
 }
 
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = decltype(*(QuadRule::weights.begin()))>
-  requires quadrature_rule<QuadRule, Domain, Scalar> &&
-           integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate(Func &&f, const Domain &cell)
+    requires quadrature_rule<QuadRule, Domain, Scalar> &&
+             integrable<Func, typename Domain::point_type, Scalar>
+constexpr auto integrate(Func&& f, const Domain& cell)
     -> std::invoke_result_t<Func, typename Domain::point_type> {
-  return detail::integrate_collect<QuadRule>(f, cell);
+    return detail::integrate_collect<QuadRule>(f, cell);
 }
 
-} // namespace quadints
-#endif // INTERFACE_HPP
+}  // namespace quadints
+#endif  // INTERFACE_HPP
