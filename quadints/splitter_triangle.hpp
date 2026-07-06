@@ -27,7 +27,7 @@ struct TriangleIterator {
 
     constexpr TriangleIterator(const bar_coords_t& coords, size_t pos = 0)
         : current_triangle(coords), pos(pos) {}
-    constexpr reference operator*() const { return current_triangle; }
+    constexpr auto operator*() const -> reference { return current_triangle; }
     constexpr pointer operator->() const { return &current_triangle; }
 
     constexpr TriangleIterator& operator++() noexcept {
