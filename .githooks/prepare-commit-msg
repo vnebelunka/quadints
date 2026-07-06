@@ -1,0 +1,4 @@
+#!/bin/bash
+
+exec < /dev/tty
+koji --hook || true
