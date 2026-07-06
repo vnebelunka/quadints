@@ -4,6 +4,6 @@ repos:
     hooks:
       - id: prepare-msg
         name: prepare commit message
-        entry: koji --hook 
+        entry: bash -c "exec < /dev/tty && koji --hook || true"
         language: system
         stages: [prepare-commit-msg]
