@@ -1,8 +1,8 @@
 #include <array>
 #include <cmath>
 
-#include "interface.hpp"
-#include "quads_triangle.hpp"
+#include "quadints/interface.hpp"
+#include "quadints/quads_triangle.hpp"
 #include "test_utility.hpp"
 #include <gtest/gtest.h>
 

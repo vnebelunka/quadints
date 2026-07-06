@@ -1,5 +1,5 @@
-#include "interface.hpp"
-#include "quads_segment.hpp"
+#include "quadints/interface.hpp"
+#include "quadints/quads_segment.hpp"
 #include <cmath>
 
 #include <gtest/gtest.h>

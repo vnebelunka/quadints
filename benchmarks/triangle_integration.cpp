@@ -1,5 +1,5 @@
-#include "interface.hpp"
-#include "quads_triangle.hpp"
+#include "quadints/interface.hpp"
+#include "quadints/quads_triangle.hpp"
 #include <gtest/gtest.h>
 #include <random>
 

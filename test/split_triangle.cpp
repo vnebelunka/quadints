@@ -1,6 +1,6 @@
 #include "test_utility.hpp"
 #include <gtest/gtest.h>
-#include <splitter_triangle.hpp>
+#include <quadints/splitter_triangle.hpp>
 
 using namespace quadints;
 

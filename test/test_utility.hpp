@@ -1,7 +1,7 @@
 #ifndef TEST_UTILITY_HPP
 #define TEST_UTILITY_HPP
 
-#include "quads_triangle.hpp"
+#include "quadints/quads_triangle.hpp"
 #include <array>
 #include <cmath>
 

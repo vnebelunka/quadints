@@ -1,5 +1,5 @@
-#include "quads_product.hpp"
-#include "quads_segment.hpp"
+#include "quadints/quads_product.hpp"
+#include "quadints/quads_segment.hpp"
 #include "test_utility.hpp"
 #include <gtest/gtest.h>
 
