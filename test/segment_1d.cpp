@@ -7,6 +7,8 @@
 
 using namespace quadints;
 
+namespace {
+
 // -------------------------------------------------------------------
 // Segment structure for 1D
 // -------------------------------------------------------------------
@@ -47,6 +49,7 @@ constexpr double integral_polynomial(const std::array<double, N>& coeffs,
     }
     return result;
 }
+}  // namespace
 
 // -------------------------------------------------------------------
 // Test fixture for 1D integration
