@@ -4,8 +4,6 @@
 #include <array>
 #include <cmath>
 
-#include "quadints/quads_triangle.hpp"
-
 struct point2d {
     std::array<double, 2> coords;
     point2d operator+(const point2d& other) const {
