@@ -4,6 +4,7 @@
 
 #include "interface.hpp"
 #include "splitter_triangle.hpp"
+#include "StopCriterion.hpp"
 namespace quadints {
 template <typename Scalar>
 struct IntegrationParams {
@@ -12,6 +13,8 @@ struct IntegrationParams {
     size_t start_level;
     size_t max_level;
 };
+
+static constexpr size_t comptime_max_level = 7;
 
 template <size_t Level>
 struct IntegrateDispatcher {
@@ -32,7 +35,7 @@ struct IntegrateDispatcher<0> {
         if (level == 0) {
             return quadints::integrate<CollectedQuadrature<Quadrule, 0, Scalar>>(std::forward<Func>(f), cell);
         } else {
-            throw std::runtime_error("Invalid level");
+            throw std::runtime_error("reached comptime max level (" + std::to_string(comptime_max_level) + ")");
         }
     }
 };
@@ -68,7 +71,6 @@ struct IntegrateDispatcher2d<0> {
     }
 };
 
-static constexpr size_t comptime_max_level = 7;
 static constexpr size_t comptime_max_level_2d = 4;
 
 template <typename Func, typename Domain>
@@ -76,31 +78,37 @@ using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
 template <typename Func, typename DomainX, typename DomainY>
 using return_type_2d = std::invoke_result_t<Func, typename DomainX::point_type, typename DomainY::point_type>;
 
-template <typename Quadrule, typename Domain>
+template <typename Quadrule, typename Domain, typename Criterion>
 class AdaptiveIntegrator {
     using Scalar = decltype(std::declval<const Domain&>().mes());
-    static_assert(quadrature_rule<Quadrule, Domain, Scalar>);
+    static_assert(quadrature_rule<Quadrule, Domain, Scalar>, "Quadrule must be a quadrature rule for the given domain and scalar type");
+    static_assert(StopCriterion<Criterion, Scalar>, "Criterion must be a stop criterion");
     template <typename Func>
     constexpr auto integrate_over_level(Func&& f, const Domain& cell, size_t level) -> return_type<Func, Domain> {
         return IntegrateDispatcher<comptime_max_level>::call<Quadrule, Func, Domain, Scalar>(
             level, std::forward<Func>(f), cell);
     }
 
+    Criterion criterion;
+    size_t max_level;
+    size_t start_level;
    public:
-    template <typename Func>
-        requires quadints::quadrature_rule<Quadrule, Domain, Scalar> &&
-                 integrable<Func, typename Domain::point_type, Scalar>
-    constexpr auto integrate(Func&& f, const Domain& cell, const IntegrationParams<Scalar>& params)
+
+    AdaptiveIntegrator(Criterion criterion, size_t max_level, size_t start_level) : criterion(criterion), max_level(max_level), start_level(start_level) {}
+
+    template<typename Func>
+    requires integrable<Func, typename Domain::point_type, Scalar>
+    constexpr auto integrate(Func&& f, const Domain& cell)
         -> return_type<Func, Domain> {
         using rt = return_type<Func, Domain>;
-        rt cur_integral = integrate_over_level(f, cell, params.start_level);
+        rt cur_integral = integrate_over_level(f, cell, start_level);
         rt prev_integral{};
 
-        for (size_t curlevel = params.start_level + 1; curlevel < params.max_level; ++curlevel) {
+        for (size_t curlevel = start_level + 1; curlevel < max_level; ++curlevel) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cell, curlevel);
             std::cerr << "Level " << curlevel << " integral: " << cur_integral << std::endl;
-            if (std::abs(cur_integral - prev_integral) < params.atol + params.rtol * std::abs(cur_integral)) {
+            if (criterion(CurrentIntegral(cur_integral), PreviousIntegral(prev_integral)) == StopCriterionType::STOP) {
                 std::cerr << "Converged at level " << curlevel << std::endl;
                 break;
             }
@@ -109,33 +117,44 @@ class AdaptiveIntegrator {
     }
 };
 
-template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY>
+template <typename Quadrule, typename Domain, typename Criterion>
+auto make_adaptive_integrator(Criterion &&c, std::size_t max_lvl, std::size_t start_lvl) {
+    return AdaptiveIntegrator<Quadrule, Domain, Criterion>(std::move(c), max_lvl, start_lvl);
+}
+
+
+template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Criterion>
 class AdaptiveIntegrator2d {
     using Scalar = decltype(std::declval<const DomainX&>().mes());
     static_assert(std::is_same_v<Scalar, decltype(std::declval<const DomainY&>().mes())>,
                   "DomainX and DomainY must have the same scalar type");
-    static_assert(quadrature_rule<QuadruleX, DomainX, Scalar>);
-    static_assert(quadrature_rule<QuadruleY, DomainY, Scalar>);
-
+    static_assert(quadrature_rule<QuadruleX, DomainX, Scalar>, "QuadruleX must be a quadrature rule for DomainX");
+    static_assert(quadrature_rule<QuadruleY, DomainY, Scalar>, "QuadruleY must be a quadrature rule for DomainY");
+    static_assert(StopCriterion<Criterion, Scalar>, "Criterion must be a stop criterion for Scalar");
     template <typename Func>
     constexpr auto integrate_over_level(Func&& f, const DomainX& cellx, const DomainY& celly, size_t level)
         -> return_type_2d<Func, DomainX, DomainY> {
         return IntegrateDispatcher2d<comptime_max_level_2d>::call<QuadruleX, QuadruleY, DomainX, DomainY, Func, Scalar>(
             level, std::forward<Func>(f), cellx, celly);
     }
+    Criterion criterion;
+    size_t max_level;
+    size_t start_level;
 
-   public:
+    public:
+    AdaptiveIntegrator2d(Criterion criterion, size_t max_level, size_t start_level)
+        : criterion(criterion), max_level(max_level), start_level(start_level) {}
+
     template <typename Func>
-    constexpr auto integrate(Func&& f, const DomainX& cellx, const DomainY& celly,
-                             const IntegrationParams<Scalar>& params) -> return_type_2d<Func, DomainX, DomainY> {
+    constexpr auto integrate(Func&& f, const DomainX& cellx, const DomainY& celly) -> return_type_2d<Func, DomainX, DomainY> {
         using rt = return_type_2d<Func, DomainX, DomainY>;
-        rt cur_integral = integrate_over_level(f, cellx, celly, params.start_level);
+        rt cur_integral = integrate_over_level(f, cellx, celly, start_level);
         rt prev_integral{};
-        for (size_t curlevel = params.start_level + 1; curlevel <= comptime_max_level; ++curlevel) {
+        for (size_t curlevel = start_level + 1; curlevel <= max_level; ++curlevel) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cellx, celly, curlevel);
             std::cerr << "level " << curlevel << " integral " << cur_integral << std::endl;
-            if (std::abs(cur_integral - prev_integral) < params.atol + params.rtol * std::abs(cur_integral)) {
+            if (criterion(CurrentIntegral(cur_integral), PreviousIntegral(prev_integral)) == StopCriterionType::STOP) {
                 std::cerr << "Converged at level " << curlevel << std::endl;
                 std::cerr << "diff: " << std::abs(cur_integral - prev_integral) << std::endl;
                 std::cerr << "integral: " << cur_integral << std::endl;
@@ -147,6 +166,11 @@ class AdaptiveIntegrator2d {
     }
 };
 
+template<typename QuadRuleX, typename QuadRuleY, typename DomainX, typename DomainY,typename Criterion>
+auto make_adaptive_integrator2d(Criterion c, size_t max_level, size_t start_level) {
+    return AdaptiveIntegrator2d<QuadRuleX, QuadRuleY, DomainX, DomainY, Criterion>(std::move(c), max_level, start_level);
+}
 }  // namespace quadints
+
 
 #endif  // QUADINTS_ADAPTIVE_HPP
