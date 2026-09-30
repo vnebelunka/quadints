@@ -165,8 +165,10 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
     using return_type = std::invoke_result_t<Func, typename Domain1::point_type, typename Domain2::point_type>;
     return_type res{};
     constexpr size_t n_points = QuadRule1::n_points * QuadRule2::n_points;
+    constexpr std::size_t DEFAULT_STACK_BYTES = 8 * 1024 * 1024;
 
     std::array<return_type, n_points> func_arr{};
+    static_assert(n_points * sizeof(return_type) < DEFAULT_STACK_BYTES, "func_arr too large");
     std::array<typename Domain1::point_type, QuadRule1::n_points> domain_points1 = get_domain_points<QuadRule1>(cell1);
     std::array<typename Domain2::point_type, QuadRule2::n_points> domain_points2 = get_domain_points<QuadRule2>(cell2);
     if constexpr (has_batch_func2<Func, typename Domain1::point_type, typename Domain2::point_type, n_points>) {
