@@ -76,8 +76,10 @@ using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
 template <typename Func, typename DomainX, typename DomainY>
 using return_type_2d = std::invoke_result_t<Func, typename DomainX::point_type, typename DomainY::point_type>;
 
-template <typename Quadrule, typename Domain, typename Scalar>
+template <typename Quadrule, typename Domain>
 class AdaptiveIntegrator {
+    using Scalar = decltype(std::declval<const Domain&>().mes());
+    static_assert(quadrature_rule<Quadrule, Domain, Scalar>);
     template <typename Func>
     constexpr auto integrate_over_level(Func&& f, const Domain& cell, size_t level) -> return_type<Func, Domain> {
         return IntegrateDispatcher<comptime_max_level>::call<Quadrule, Func, Domain, Scalar>(
@@ -107,8 +109,14 @@ class AdaptiveIntegrator {
     }
 };
 
-template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Scalar>
+template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY>
 class AdaptiveIntegrator2d {
+    using Scalar = decltype(std::declval<const DomainX&>().mes());
+    static_assert(std::is_same_v<Scalar, decltype(std::declval<const DomainY&>().mes())>,
+                  "DomainX and DomainY must have the same scalar type");
+    static_assert(quadrature_rule<QuadruleX, DomainX, Scalar>);
+    static_assert(quadrature_rule<QuadruleY, DomainY, Scalar>);
+
     template <typename Func>
     constexpr auto integrate_over_level(Func&& f, const DomainX& cellx, const DomainY& celly, size_t level)
         -> return_type_2d<Func, DomainX, DomainY> {

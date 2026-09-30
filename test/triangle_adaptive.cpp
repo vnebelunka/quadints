@@ -17,7 +17,7 @@ using TriangleMidpointRule = TriangleQuadrature<double, 1>;
 TEST(AdaptiveIntegrationTriangleTest, MidPoint0degree) {
     auto constant = [](point2d) { return 5.0; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     double result = integrator.integrate(constant, tri_unit, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     double exact = 5.0 * tri_unit.mes();  // area=0.5 → 2.5
     EXPECT_NEAR(result, exact, 1e-12);
@@ -26,7 +26,7 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint0degree) {
 TEST(AdaptiveIntegrationTriangleTest, MidPoint1degree) {
     auto linear = [](point2d p) { return p.coords[0]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     double result = integrator.integrate(linear, tri_unit, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     double exact = 1. / 6;
     EXPECT_NEAR(result, exact, std::abs(exact) * 3e-3);
@@ -35,7 +35,7 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint1degree) {
 TEST(AdaptiveIntegrationTriangleTest, MidPoint2degree) {
     auto square = [](point2d p) { return p.coords[0] * p.coords[1]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     double result = integrator.integrate(square, tri_unit, IntegrationParams<double>{0.0, 1e-4, 0, 10});
     double exact_square = 1. / 24;
     EXPECT_NEAR(result, exact_square, std::abs(exact_square) * 1e-3);
@@ -44,7 +44,7 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint2degree) {
 TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree) {
     auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     double result = integrator.integrate(cubic, tri_unit, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     double exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
     EXPECT_NEAR(result, exact_cubic, std::abs(exact_cubic) * 3e-3);
@@ -53,7 +53,7 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree) {
 TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e5) {
     auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     double result = integrator.integrate(cubic, tri_unit, IntegrationParams<double>{0.0, 1e-5, 0, 10});
     double exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
     EXPECT_NEAR(result, exact_cubic, std::abs(exact_cubic) * 4e-5);
@@ -62,7 +62,7 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e5) {
 TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e6) {
     auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator<TriangleMidpointRule, Triangle, double> integrator;
+    AdaptiveIntegrator<TriangleMidpointRule, Triangle> integrator;
     EXPECT_THROW(integrator.integrate(cubic, tri_unit, IntegrationParams<double>{0.0, 1e-6, 0, 10});
                  , std::runtime_error);
 }
@@ -71,7 +71,7 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPoint0degree) {
     auto constant = [](point2d px, point2d py) { return 1.0; };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
-    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle, double> integrator;
+    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
     auto result = integrator.integrate(constant, tri_unit1, tri_unit2, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     EXPECT_NEAR(result, tri_unit1.mes() * tri_unit2.mes(), 1e-12);
 }
@@ -80,7 +80,7 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPoint1degree) {
     auto constant = [](point2d px, point2d py) { return px.coords[0] * py.coords[0] + px.coords[1] * py.coords[1]; };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
-    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle, double> integrator;
+    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
     auto result = integrator.integrate(constant, tri_unit1, tri_unit2, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     auto expected = 1. / 9;
     EXPECT_NEAR(result, expected, std::abs(expected) * 3e-3);
@@ -93,7 +93,7 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist) {
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
-    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle, double> integrator;
+    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
     auto result = integrator.integrate(dist, tri_unit1, tri_unit2, IntegrationParams<double>{0.0, 1e-3, 0, 10});
     auto expected = 0.157129;
     EXPECT_NEAR(result, expected, 3e-3 * std::abs(expected));
@@ -105,7 +105,7 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist1triangle) {
                          (px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1]));
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle, double> integrator;
+    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
     auto result = integrator.integrate(dist, tri_unit1, tri_unit1, IntegrationParams<double>{0.0, 1e-3, 1, 10});
     auto expected = 0.103576;
     EXPECT_NEAR(result, expected, 3e-3 * std::abs(expected));
@@ -118,7 +118,7 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist2triangles1e5) {
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
-    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle, double> integrator;
+    AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
     EXPECT_THROW(integrator.integrate(dist, tri_unit1, tri_unit2, IntegrationParams<double>{0.0, 1e-5, 0, 10}),
                  std::runtime_error);
     // EXPECT_NEAR(result, expected, 3e-5 * std::abs(expected));
