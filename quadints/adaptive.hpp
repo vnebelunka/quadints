@@ -16,10 +16,15 @@ struct IntegrationParams {
 
 static constexpr size_t comptime_max_level = 6;
 
+template <typename Func, typename Domain>
+using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+template <typename Func, typename DomainX, typename DomainY>
+using return_type_2d = std::invoke_result_t<Func, typename DomainX::point_type, typename DomainY::point_type>;
+
 template <size_t Level>
 struct IntegrateDispatcher {
     template <typename Quadrule, typename Func, typename Domain, typename Scalar>
-    static auto call(size_t level, Func&& f, const Domain& cell) {
+    static auto call(size_t level, Func&& f, const Domain& cell) -> return_type<Func, Domain> {
         if (level == Level) {
             return quadints::integrate<CollectedQuadrature<Quadrule, Level, Scalar>>(std::forward<Func>(f), cell);
         } else {
@@ -31,7 +36,7 @@ struct IntegrateDispatcher {
 template <>
 struct IntegrateDispatcher<0> {
     template <typename Quadrule, typename Func, typename Domain, typename Scalar>
-    static auto call(size_t level, Func&& f, const Domain& cell) {
+    static auto call(size_t level, Func&& f, const Domain& cell) -> return_type<Func, Domain> {
         if (level == 0) {
             return quadints::integrate<CollectedQuadrature<Quadrule, 0, Scalar>>(std::forward<Func>(f), cell);
         } else {
@@ -44,7 +49,8 @@ template <size_t Level>
 struct IntegrateDispatcher2d {
     template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Func,
               typename Scalar>
-    static Scalar call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly) {
+    static auto call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly)
+        -> return_type_2d<Func, DomainX, DomainY> {
         if (level == Level) {
             using q1 = CollectedQuadrature<QuadruleX, Level, Scalar>;
             using q2 = CollectedQuadrature<QuadruleY, Level, Scalar>;
@@ -60,7 +66,8 @@ template <>
 struct IntegrateDispatcher2d<0> {
     template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Func,
               typename Scalar>
-    static Scalar call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly) {
+    static auto call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly)
+        -> return_type_2d<Func, DomainX, DomainY> {
         if (level == 0) {
             using q1 = CollectedQuadrature<QuadruleX, 0, Scalar>;
             using q2 = CollectedQuadrature<QuadruleY, 0, Scalar>;
@@ -73,10 +80,21 @@ struct IntegrateDispatcher2d<0> {
 
 static constexpr size_t comptime_max_level_2d = 4;
 
-template <typename Func, typename Domain>
-using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
-template <typename Func, typename DomainX, typename DomainY>
-using return_type_2d = std::invoke_result_t<Func, typename DomainX::point_type, typename DomainY::point_type>;
+/**
+ * Concept for an integrator callback function.
+ *
+ * @tparam Callback The callback function type.
+ * @tparam return_type The return type of the .
+ * @note signature of callback function is:
+ *
+ * @param current_integral The current integral value.
+ * @param previous_integral The previous integral value.
+ * @param level The current level of the integration.
+ * @param converged Whether the integration has converged.
+ */
+template <typename Callback, typename Integrand_return_type>
+concept IntegratorCallback = std::invocable<Callback&, CurrentIntegral<Integrand_return_type>,
+                                            PreviousIntegral<Integrand_return_type>, size_t, bool>;
 
 template <typename Quadrule, typename Domain, typename Criterion>
 class AdaptiveIntegrator {
