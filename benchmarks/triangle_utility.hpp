@@ -20,6 +20,11 @@ struct point2d {
         coords[1] *= scalar;
         return *this;
     }
+    point2d& operator-=(const point2d& other) {
+        coords[0] -= other.coords[0];
+        coords[1] -= other.coords[1];
+        return *this;
+    }
     bool operator==(const point2d& other) const {
         return std::abs(coords[0] - other.coords[0]) < 1e-12 &&
                std::abs(coords[1] - other.coords[1]) < 1e-12;
@@ -27,8 +32,10 @@ struct point2d {
     bool operator!=(const point2d& other) const { return !(*this == other); }
 };
 
-inline point2d operator*(double scalar, const point2d& p) {
-    return {scalar * p.coords[0], scalar * p.coords[1]};
+inline point2d operator*(double scalar, const point2d& p) { return {scalar * p.coords[0], scalar * p.coords[1]}; }
+
+inline point2d operator-(const point2d& p1, const point2d& p2) {
+    return {p1.coords[0] - p2.coords[0], p1.coords[1] - p2.coords[1]};
 }
 
 inline double norm(const point2d& p) {
