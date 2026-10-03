@@ -42,6 +42,9 @@ void BM_adaptive_integration(benchmark::State& state) {
         i = (i + 1) % n;
     }
     state.counters["AvgDepth"] = benchmark::Counter(total_depth, benchmark::Counter::kAvgIterations);
+    auto sum_squares = [](size_t n) { return n * (n + 1) * (2 * n + 1) / 6; };
+    state.counters["AvgIntegrandCalls"] = benchmark::Counter(
+        QuadRule::n_points * QuadRule::n_points * sum_squares(total_depth), benchmark::Counter::kAvgIterations);
 }
 }  // namespace
 
