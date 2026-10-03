@@ -14,7 +14,7 @@ struct IntegrationParams {
     size_t max_level;
 };
 
-static constexpr size_t comptime_max_level = 7;
+static constexpr size_t comptime_max_level = 6;
 
 template <size_t Level>
 struct IntegrateDispatcher {
@@ -107,9 +107,7 @@ class AdaptiveIntegrator {
         for (size_t curlevel = start_level + 1; curlevel < max_level; ++curlevel) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cell, curlevel);
-            std::cerr << "Level " << curlevel << " integral: " << cur_integral << std::endl;
             if (criterion(CurrentIntegral(cur_integral), PreviousIntegral(prev_integral)) == StopCriterionType::STOP) {
-                std::cerr << "Converged at level " << curlevel << std::endl;
                 break;
             }
         }
@@ -153,12 +151,7 @@ class AdaptiveIntegrator2d {
         for (size_t curlevel = start_level + 1; curlevel <= max_level; ++curlevel) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cellx, celly, curlevel);
-            std::cerr << "level " << curlevel << " integral " << cur_integral << std::endl;
             if (criterion(CurrentIntegral(cur_integral), PreviousIntegral(prev_integral)) == StopCriterionType::STOP) {
-                std::cerr << "Converged at level " << curlevel << std::endl;
-                std::cerr << "diff: " << std::abs(cur_integral - prev_integral) << std::endl;
-                std::cerr << "integral: " << cur_integral << std::endl;
-                std::cerr << "prev_integral: " << prev_integral << std::endl;
                 break;
             }
         }

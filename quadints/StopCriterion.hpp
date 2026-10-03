@@ -63,10 +63,8 @@ namespace quadints {
 
         template<typename ReturnType>
         StopCriterionType operator()(CurrentIntegral<ReturnType> current, PreviousIntegral<ReturnType> previous) const {
-            ReturnType error = std::abs(current - previous);
-            std::cerr << "error: " << error << std::endl;
-            std::cerr << "criteterion: " << atol + rtol * std::abs(current) << std::endl;
-            return error < atol + rtol * std::abs(current) ? StopCriterionType::STOP : StopCriterionType::CONTINUE;
+            Scalar error = magnitude<ReturnType, Scalar>(static_cast<ReturnType>(current) - static_cast<ReturnType>(previous));
+            return error < atol + rtol * magnitude<ReturnType, Scalar>(static_cast<ReturnType>(current)) ? StopCriterionType::STOP : StopCriterionType::CONTINUE;
         }
     };
 }
