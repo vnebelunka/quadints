@@ -37,6 +37,7 @@ if(BUILD_TESTS)
         test/product.cpp
         test/split_triangle.cpp
         test/triangle_adaptive.cpp
+        test/triangle_adaptive_callback.cpp
     )
   target_link_libraries(integration_tests
         PRIVATE
