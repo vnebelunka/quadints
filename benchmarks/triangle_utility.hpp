@@ -1,3 +1,6 @@
+#ifndef QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
+#define QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
+
 
 struct point2d {
     std::array<double, 2> coords;
@@ -47,3 +50,22 @@ struct Triangle {
         return _vertices;
     }
 };
+
+static std::vector<Triangle> generate_random_triangles(size_t count, double min_coord = 0.0, double max_coord = 10.0) {
+    std::mt19937 rng(12345);  // Fixed seed for reproducibility
+    std::uniform_real_distribution<double> dist(min_coord, max_coord);
+
+    std::vector<Triangle> triangles;
+    triangles.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        Triangle T;
+        T._vertices[0] = point2d{dist(rng), dist(rng)};
+        T._vertices[1] = point2d{dist(rng), dist(rng)};
+        T._vertices[2] = point2d{dist(rng), dist(rng)};
+        triangles.push_back(T);
+    }
+    return triangles;
+}
+
+
+#endif // QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
