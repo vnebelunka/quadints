@@ -193,9 +193,8 @@ template <typename Scalar>
 struct TriangleRangeDynamic {
     size_t depth;
     constexpr TriangleRangeDynamic(size_t depth) : depth(depth) {}
-    constexpr size_t size() { return 1u << (2 * depth); }
+    constexpr size_t size() const { return 1u << (2 * depth); }
     constexpr TriangleIteratorDynamic<Scalar> begin() const {
-        constexpr double step = 1. / static_cast<double>(1u << depth);
         return TriangleIteratorDynamic<Scalar>(depth, 0, 0, true);
     }
     constexpr TriangleIteratorDynamic<Scalar> end() const {
@@ -230,8 +229,6 @@ struct TriangleRangeDynamic {
         return bar_points;
     }
 };
-
-
 
 template <typename BaseQuadRule, size_t depth, typename Scalar>
 struct CollectedQuadratureStatic {

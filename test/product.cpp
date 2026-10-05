@@ -23,7 +23,6 @@ struct square {
 
 TEST(test_quadrature, square) {
     square sq{{0.0, 0.0}, 1.0};
-    auto I = integrate<SquareMidpointRule>(
-        [](point2d p) { return p.coords[0] * p.coords[1]; }, sq);
+    auto I = integrate<SquareMidpointRule>([](point2d p) { return p.coords[0] * p.coords[1]; }, sq);
     ASSERT_NEAR(I, 1.0 / 4.0, 1e-12);
 }

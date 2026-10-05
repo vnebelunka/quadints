@@ -22,8 +22,8 @@ concept has_abs = requires(T t) {
 template <typename T, typename scalar>
 concept has_magnitude = has_norm<T, scalar> || has_abs<T, scalar>;
 
-template<typename T, typename scalar>
-requires has_magnitude<T, scalar>
+template <typename T, typename scalar>
+    requires has_magnitude<T, scalar>
 scalar magnitude(T t) {
     if constexpr (has_norm<T, scalar>) {
         return norm(t);
@@ -31,7 +31,6 @@ scalar magnitude(T t) {
         return std::abs(t);
     }
 }
-
 
 template <typename scalar, typename T>
 concept banach_vec = requires(scalar alpha, T t, T u) {

@@ -8,13 +8,11 @@
 #include "quadints/quads_triangle.hpp"
 #include "triangle_utility.hpp"
 
-
 using namespace quadints;
 
 static const Triangle tri_unit{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
 // The integrand used in the test
 static auto quad_xy = [](point2d p) { return std::exp(p.coords[0] * p.coords[1]); };
-
 
 template <typename QuadRule>
 static void BM_triangle_vec_iter(benchmark::State& state) {

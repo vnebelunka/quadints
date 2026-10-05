@@ -55,6 +55,21 @@ constexpr auto to_domain(const triangle_t& t, const std::array<barycentric_trian
     return result;
 }
 
+template <typename triangle_t, typename Scalar = triangle_t::point_type>
+constexpr auto to_domain(const triangle_t& t, const std::vector<barycentric_triangle<Scalar>>& coords) {
+    const auto& vertices = t.vertices();
+    const auto& A = vertices[0];
+    const auto& B = vertices[1];
+    const auto& C = vertices[2];
+    const auto CA = A + C * static_cast<Scalar>(-1);
+    const auto CB = B + C * static_cast<Scalar>(-1);
+    std::vector<typename triangle_t::point_type> result(coords.size());
+    for (size_t i = 0; i < coords.size(); ++i) {
+        result[i] = C + CA * coords[i].x() + CB * coords[i].y();
+    }
+    return result;
+}
+
 template <typename Scalar>
 struct barycentric_direction {
     std::array<Scalar, 2> dirs;
@@ -83,14 +98,13 @@ constexpr barycentric_triangle<Scalar>& operator+=(barycentric_triangle<Scalar>&
     return c;
 }
 
-template<typename Scalar>
+template <typename Scalar>
 constexpr barycentric_direction<Scalar> operator-(const barycentric_triangle<Scalar>& c,
                                                   const barycentric_triangle<Scalar>& d) {
     return {c.coords[0] - d.coords[0], c.coords[1] - d.coords[1]};
 }
-template<typename Scalar>
-constexpr barycentric_direction<Scalar> operator*(const barycentric_direction<Scalar>& c,
-                                                  Scalar s) {
+template <typename Scalar>
+constexpr barycentric_direction<Scalar> operator*(const barycentric_direction<Scalar>& c, Scalar s) {
     return {c.dirs[0] * s, c.dirs[1] * s};
 }
 

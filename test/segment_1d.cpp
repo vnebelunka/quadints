@@ -41,8 +41,7 @@ constexpr double integral_monomial(int n, double a = 0.0, double b = 1.0) {
 
 // ∫_a^b (c_0 + c_1 x + ... + c_{N-1} x^{N-1}) dx
 template <size_t N>
-constexpr double integral_polynomial(const std::array<double, N>& coeffs,
-                                     double a = 0.0, double b = 1.0) {
+constexpr double integral_polynomial(const std::array<double, N>& coeffs, double a = 0.0, double b = 1.0) {
     double result = 0.0;
     for (size_t k = 0; k < N; ++k) {
         result += coeffs[k] * integral_monomial(static_cast<int>(k), a, b);
@@ -175,12 +174,8 @@ struct vec3d {
     vec3d() : x(0), y(0), z(0) {}
     vec3d(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
 
-    vec3d operator+(const vec3d& other) const {
-        return {x + other.x, y + other.y, z + other.z};
-    }
-    vec3d operator*(double scalar) const {
-        return {x * scalar, y * scalar, z * scalar};
-    }
+    vec3d operator+(const vec3d& other) const { return {x + other.x, y + other.y, z + other.z}; }
+    vec3d operator*(double scalar) const { return {x * scalar, y * scalar, z * scalar}; }
     vec3d& operator+=(const vec3d& other) {
         x += other.x;
         y += other.y;
@@ -195,13 +190,9 @@ struct vec3d {
     }
 };
 
-vec3d operator*(double scalar, const vec3d& v) {
-    return {scalar * v.x, scalar * v.y, scalar * v.z};
-}
+vec3d operator*(double scalar, const vec3d& v) { return {scalar * v.x, scalar * v.y, scalar * v.z}; }
 
-double norm(const vec3d& v) {
-    return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
+double norm(const vec3d& v) { return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
 
 TEST_F(Integration1DTest, VectorValuedLambda) {
     auto vec_func = [](double x) { return vec3d{x, x * x, x * x * x}; };

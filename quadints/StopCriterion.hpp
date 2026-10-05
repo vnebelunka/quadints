@@ -44,7 +44,6 @@ concept StopCriterion = requires(T t, CurrentIntegral<Scalar> cur, PreviousInteg
     { t(cur, prev) } -> std::convertible_to<StopCriterionType>;
 };
 
-template <typename Scalar>
 struct NonAdaptiveCriterion {
     NonAdaptiveCriterion() = default;
     template <typename Scalar>

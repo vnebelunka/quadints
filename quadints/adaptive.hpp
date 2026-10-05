@@ -1,5 +1,6 @@
 #ifndef QUADINTS_ADAPTIVE_HPP
 #define QUADINTS_ADAPTIVE_HPP
+#include <compare>
 #include <memory>
 
 #include "StopCriterion.hpp"
