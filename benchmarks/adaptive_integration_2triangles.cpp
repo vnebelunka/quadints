@@ -29,35 +29,102 @@ struct expir_func {
 };
 
 namespace {
+
+constexpr size_t kNumTriangles = 10'000;
+
+struct TriangleData {
+    std::vector<Triangle> x;
+    std::vector<Triangle> y;
+    TriangleData() : x(generate_random_triangles(kNumTriangles)), y(generate_random_triangles(kNumTriangles, 15, 25)) {}
+};
+
+const TriangleData& shared_triangles() {
+    static const TriangleData data;
+    return data;
+}
+
 template <typename QuadRule, typename Integrand>
-void BM_adaptive_integration(benchmark::State& state) {
-    size_t n = 10'000;
-    std::vector<Triangle> trianglesx = generate_random_triangles(n);
-    std::vector<Triangle> trianglesy = generate_random_triangles(n, 15, 25);
-    size_t depth;
+void adaptive_integration_triangle_pair(benchmark::State& state) {
+    const auto& tri = shared_triangles();
+    const size_t n = tri.x.size();
+
+    const auto rtol = std::pow(10, -static_cast<double>(state.range(0)));
+
     size_t total_depth = 0;
-    auto get_depth = [&total_depth](CurrentIntegral<return_type_2d<Integrand, Triangle, Triangle>>,
-                                    PreviousIntegral<return_type_2d<Integrand, Triangle, Triangle>>,
-                                    size_t current_depth, bool) { total_depth += current_depth; };
+    size_t total_calls = 0;
+    size_t total_converged = 0;
+
+    auto get_info = [&total_depth, &total_calls, &total_converged](
+                        CurrentIntegral<return_type_2d<Integrand, Triangle, Triangle>>,
+                        PreviousIntegral<return_type_2d<Integrand, Triangle, Triangle>>, size_t current_depth,
+                        bool is_converged) {
+        total_depth += current_depth;
+        constexpr auto num_triangles = [](size_t depth) { return (std::pow(4, depth + 1) - 1) / 3; };
+        total_calls += QuadRule::n_points * QuadRule::n_points * num_triangles(current_depth);
+        total_converged += is_converged;
+    };
+
     auto integrator = make_adaptive_integrator2d<QuadRule, QuadRule, Triangle, Triangle>(
-        DefaultCriterion{Atol(0.0), Rtol(1e-5)}, 6, 0);
+        DefaultCriterion{Atol(0.0), Rtol(rtol)}, comptime_max_level_2d, 0);
+
     size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(integrator.integrate(Integrand{}, trianglesx[i], trianglesy[i], get_depth));
+        benchmark::DoNotOptimize(integrator.integrate(Integrand{}, tri.x[i], tri.y[i], get_info));
         i = (i + 1) % n;
     }
+
     state.counters["AvgDepth"] = benchmark::Counter(total_depth, benchmark::Counter::kAvgIterations);
+    state.counters["AvgIntegrandCalls"] = benchmark::Counter(total_calls, benchmark::Counter::kAvgIterations);
+    state.counters["AvgConverged"] = benchmark::Counter(total_converged, benchmark::Counter::kAvgIterations);
 }
+
 }  // namespace
 
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 1>, constant_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 3>, constant_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 7>, constant_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 1>, norm_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 3>, norm_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 7>, norm_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 1>, expir_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 3>, expir_func>);
-BENCHMARK(BM_adaptive_integration<TriangleQuadrature<double, 7>, expir_func>);
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 1>, constant_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)")
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 3>, constant_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 7>, constant_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 1>, norm_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 3>, norm_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 7>, norm_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 1>, expir_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 3>, expir_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
+BENCHMARK(adaptive_integration_triangle_pair<TriangleQuadrature<double, 7>, expir_func>)
+    ->Arg(3)
+    ->Arg(4)
+    ->Arg(5)
+    ->ArgName("-log10(rtol)");
 
 BENCHMARK_MAIN();
