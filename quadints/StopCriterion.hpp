@@ -46,6 +46,8 @@ concept StopCriterion = requires(T t, CurrentIntegral<Scalar> cur, PreviousInteg
 
 template <typename Scalar>
 struct NonAdaptiveCriterion {
+    NonAdaptiveCriterion() = default;
+    template <typename Scalar>
     StopCriterionType operator()(CurrentIntegral<Scalar>, PreviousIntegral<Scalar>) const {
         return StopCriterionType::STOP;
     }

@@ -1,4 +1,5 @@
-
+#ifndef QUADINTS_SPLITTER_TRIANGLE_HPP
+#define QUADINTS_SPLITTER_TRIANGLE_HPP
 #include <array>
 #include <cstddef>
 #include <iterator>
@@ -93,7 +94,9 @@ struct TriangleIteratorDynamic {
     using value_type = bar_coords_t;
     using difference_type = std::ptrdiff_t;
     using reference = bar_coords_t&;
+    using const_reference = const bar_coords_t&;
     using pointer = bar_coords_t*;
+    using const_pointer = const bar_coords_t*;
     constexpr TriangleIteratorDynamic(size_t depth, size_t cur_level, size_t cur_pos, bool upper)
         : depth(depth),
           cur_level(cur_level),
@@ -106,8 +109,8 @@ struct TriangleIteratorDynamic {
         point C{cur_pos * step, (cur_level + 1) * step};
         current_triangle = bar_coords_t{A, B, C};
     }
-    constexpr reference operator*() const { return current_triangle; }
-    constexpr pointer operator->() const { return &current_triangle; }
+    constexpr const_reference operator*() const { return current_triangle; }
+    constexpr const_pointer operator->() const { return &current_triangle; }
 
     constexpr TriangleIteratorDynamic& operator++() noexcept {
         ++cur_pos;
@@ -250,24 +253,27 @@ struct CollectedQuadratureStatic {
     static constexpr std::array<Scalar, n_points> weights = make_weights();
 };
 
-template <typename BaseQuadRule, typename Scalar>
+template <typename BaseQuadRule, typename Scalar = std::decay_t<decltype(BaseQuadRule::weights[0])>>
 struct CollectedQuadratureDynamic {
     using range = TriangleRangeDynamic<Scalar>;
     size_t depth;
-    constexpr CollectedQuadratureDynamic(size_t depth) : depth(depth) {}
-    constexpr size_t n_points() const { return BaseQuadRule::n_points * range::size(); }
+    size_t range_size;
+    CollectedQuadratureDynamic(size_t depth) : depth(depth), range_size(range(depth).size()) {}
+    size_t n_points() const { return BaseQuadRule::n_points * range_size; }
     using point_type = barycentric_triangle<Scalar>;
-    constexpr std::vector<point_type> points() const {
+    std::vector<point_type> points() const {
         range r(depth);
         return r.template collect_quadrature_points<BaseQuadRule>();
     }
-    constexpr std::vector<Scalar> weights() const {
+    std::vector<Scalar> weights() const {
         std::vector<Scalar> result(n_points());
         for (size_t i = 0; i < n_points(); ++i) {
-            result[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range::size();
+            result[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range_size;
         }
         return result;
     }
 };
 
 }  // namespace quadints
+
+#endif  // QUADINTS_SPLITTER_TRIANGLE_HPP

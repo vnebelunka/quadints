@@ -96,6 +96,11 @@ concept has_batch_to_domain = requires(const Domain& cell, const std::array<RefP
     { to_domain<N>(cell, ref_pts) } -> std::convertible_to<std::array<DomainPoint, N>>;
 };
 
+template <typename Domain, typename RefPoint, typename DomainPoint>
+concept has_batch_to_domain_dynamic = requires(const Domain& cell, const std::vector<RefPoint>& ref_pts) {
+    { to_domain(cell, ref_pts) } -> std::convertible_to<std::vector<DomainPoint>>;
+};
+
 template <typename QuadRule, typename Domain>
 auto get_domain_points(const Domain& cell) -> std::array<typename Domain::point_type, QuadRule::n_points> {
     std::array<typename Domain::point_type, QuadRule::n_points> res;
@@ -108,6 +113,19 @@ auto get_domain_points(const Domain& cell) -> std::array<typename Domain::point_
         }
     }
     return res;
+}
+
+template <typename BarPointType, typename Domain>
+auto get_domain_points(const Domain& cell, const std::vector<BarPointType>& points) {
+    if constexpr (has_batch_to_domain_dynamic<Domain, BarPointType, typename Domain::point_type>) {
+        return to_domain(cell, points);
+    } else {
+        std::vector<typename Domain::point_type> res(points.size());
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            res[i] = points[i].to_domain(cell);
+        }
+        return res;
+    }
 }
 
 template <typename Func, typename DomainPoint, std::size_t N>
@@ -139,6 +157,23 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell)
     }
     for (size_t i = 0; i < QuadRule::n_points; ++i) {
         res += func_arr[i] * QuadRule::weights[i];
+    }
+    return res * cell.mes();
+}
+
+template <typename Domain, typename Func, typename QuadRulePointType, typename Scalar>
+constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector<QuadRulePointType>& quad_rule_points,
+                                 const std::vector<Scalar>& quad_rule_weights)
+    -> std::invoke_result_t<Func, typename Domain::point_type> {
+    using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+    return_type res{};
+    auto domain_points = get_domain_points(cell, quad_rule_points);
+    std::vector<return_type> func_arr(quad_rule_points.size());
+    for (std::size_t i = 0; i < quad_rule_points.size(); ++i) {
+        func_arr[i] = std::invoke(f, domain_points[i]);
+    }
+    for (std::size_t i = 0; i < quad_rule_weights.size(); ++i) {
+        res += func_arr[i] * quad_rule_weights[i];
     }
     return res * cell.mes();
 }
