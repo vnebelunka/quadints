@@ -33,10 +33,11 @@ void BM_dynamic_quadrature(benchmark::State& state) {
     std::vector<Triangle> triangles = generate_random_triangles(n);
     size_t level = state.range(0);
     auto integrator = CollectedQuadratureDynamic<QuadRule>(level);
+    auto points = integrator.points();
+    auto weights = integrator.weights();
     size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(
-            detail::integrate_collect(Integrand{}, triangles[i], integrator.points(), integrator.weights()));
+        benchmark::DoNotOptimize(detail::integrate_collect(Integrand{}, triangles[i], points, weights));
         i = (i + 1) % n;
     }
 }
