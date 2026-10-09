@@ -13,8 +13,7 @@ concept triangle = requires(T t) {
     typename T::point_type;
     requires banach_vec<Scalar, typename T::point_type>;
     t.vertices();
-    t.vertices()[0], t.vertices()[1], t.vertices()[2];
-    requires t.vertices().size() == 3;
+    { t.vertices()[0], t.vertices()[1], t.vertices()[2] };
 };
 
 template <typename Scalar>
