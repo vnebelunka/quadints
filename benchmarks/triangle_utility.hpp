@@ -1,10 +1,5 @@
-#ifndef TEST_UTILITY_HPP
-#define TEST_UTILITY_HPP
-
-#include <array>
-#include <cmath>
-
-#include "quadints/quads_triangle.hpp"
+#ifndef QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
+#define QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
 
 struct point2d {
     std::array<double, 2> coords;
@@ -20,6 +15,11 @@ struct point2d {
         coords[1] *= scalar;
         return *this;
     }
+    point2d& operator-=(const point2d& other) {
+        coords[0] -= other.coords[0];
+        coords[1] -= other.coords[1];
+        return *this;
+    }
     bool operator==(const point2d& other) const {
         return std::abs(coords[0] - other.coords[0]) < 1e-12 && std::abs(coords[1] - other.coords[1]) < 1e-12;
     }
@@ -27,6 +27,10 @@ struct point2d {
 };
 
 inline point2d operator*(double scalar, const point2d& p) { return {scalar * p.coords[0], scalar * p.coords[1]}; }
+
+inline point2d operator-(const point2d& p1, const point2d& p2) {
+    return {p1.coords[0] - p2.coords[0], p1.coords[1] - p2.coords[1]};
+}
 
 inline double norm(const point2d& p) { return std::sqrt(p.coords[0] * p.coords[0] + p.coords[1] * p.coords[1]); }
 
@@ -43,4 +47,20 @@ struct Triangle {
     constexpr const std::array<point2d, 3>& vertices() const { return _vertices; }
 };
 
-#endif  // TEST_UTILITY_HPP
+static std::vector<Triangle> generate_random_triangles(size_t count, double min_coord = 0.0, double max_coord = 10.0) {
+    std::mt19937 rng(12345);  // Fixed seed for reproducibility
+    std::uniform_real_distribution<double> dist(min_coord, max_coord);
+
+    std::vector<Triangle> triangles;
+    triangles.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        Triangle T;
+        T._vertices[0] = point2d{dist(rng), dist(rng)};
+        T._vertices[1] = point2d{dist(rng), dist(rng)};
+        T._vertices[2] = point2d{dist(rng), dist(rng)};
+        triangles.push_back(T);
+    }
+    return triangles;
+}
+
+#endif  // QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
