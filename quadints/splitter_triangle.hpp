@@ -251,24 +251,27 @@ struct CollectedQuadratureStatic {
 };
 
 template <typename BaseQuadRule, typename Scalar = std::decay_t<decltype(BaseQuadRule::weights[0])>>
-struct CollectedQuadratureDynamic {
+class CollectedQuadratureDynamic {
     using range = TriangleRangeDynamic<Scalar>;
     size_t depth;
     size_t range_size;
-    CollectedQuadratureDynamic(size_t depth) : depth(depth), range_size(range(depth).size()) {}
-    size_t n_points() const { return BaseQuadRule::n_points * range_size; }
     using point_type = barycentric_triangle<Scalar>;
-    std::vector<point_type> points() const {
+
+    std::vector<point_type> _points;
+    std::vector<Scalar> _weights;
+
+   public:
+    CollectedQuadratureDynamic(size_t depth) : depth(depth), range_size(range(depth).size()) {
         range r(depth);
-        return r.template collect_quadrature_points<BaseQuadRule>();
-    }
-    std::vector<Scalar> weights() const {
-        std::vector<Scalar> result(n_points());
+        _points = r.template collect_quadrature_points<BaseQuadRule>();
+        _weights.resize(n_points());
         for (size_t i = 0; i < n_points(); ++i) {
-            result[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range_size;
+            _weights[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range_size;
         }
-        return result;
     }
+    size_t n_points() const { return BaseQuadRule::n_points * range_size; }
+    const std::vector<point_type>& points() const { return _points; }
+    const std::vector<Scalar>& weights() const { return _weights; }
 };
 
 }  // namespace quadints
