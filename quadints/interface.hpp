@@ -64,7 +64,10 @@ template <typename F, typename arg, typename Scalar>
 concept integrable = requires(F f, arg x) { requires banach_vec<Scalar, decltype(f(x))>; };
 
 template <typename F, typename arg1, typename arg2, typename Scalar>
-concept integrable2 = requires(F f, arg1 x, arg2 y) { requires banach_vec<Scalar, decltype(f(x, y))>; };
+concept integrable2 = requires(F f, arg1 x, arg2 y) {
+    { f(x, y) };
+    requires banach_vec<Scalar, decltype(f(x, y))>;
+};
 
 namespace detail {
 
@@ -235,6 +238,40 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
     }
     return res * cell1.mes() * cell2.mes();
 };
+
+template <typename Domain1, typename Domain2, typename Func, typename QuadRule1PointType1, typename QuadRule2PointType2,
+          typename Scalar = decltype(Domain2().mes())>
+    requires integrable2<Func, typename Domain1::point_type, typename Domain2::point_type, Scalar>
+constexpr auto integrate2_collect(Func&& f, const Domain1& cell_x, const Domain2& cell_y,
+                                  const std::vector<QuadRule1PointType1>& quad_rule_points_x,
+                                  const std::vector<Scalar>& quad_rule_weights_x,
+                                  const std::vector<QuadRule2PointType2>& quad_rule_points_y,
+                                  const std::vector<Scalar>& quad_rule_weights_y) {
+    using rt = std::invoke_result_t<Func, typename Domain1::point_type, typename Domain2::point_type>;
+    auto domain_points_x = get_domain_points(cell_x, quad_rule_points_x);
+    auto domain_points_y = get_domain_points(cell_y, quad_rule_points_y);
+    std::vector<rt> func_arr(quad_rule_points_x.size() * quad_rule_points_y.size());
+    size_t Nx = quad_rule_points_x.size();
+    size_t Ny = quad_rule_weights_y.size();
+
+    for (size_t j = 0; j < Ny; ++j) {
+        for (size_t i = 0; i < Nx; ++i) {
+            func_arr[j * Ny + i] = std::invoke(f, domain_points_x[i], domain_points_y[j]);
+        }
+    }
+
+    rt res{};
+
+    for (size_t index_y = 0; index_y < Ny; ++index_y) {
+        rt resj = 0;
+        Scalar wj = quad_rule_weights_y[index_y];
+        for (size_t index_x = 0; index_x < Nx; ++index_x) {
+            resj += func_arr[index_y * Nx + index_x] * quad_rule_weights_x[index_x];
+        }
+        res += resj * wj;
+    }
+    return res * cell_x.mes() * cell_y.mes();
+}
 
 }  // namespace detail
 

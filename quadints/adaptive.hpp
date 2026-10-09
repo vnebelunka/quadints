@@ -176,12 +176,10 @@ class AdaptiveIntegrator2d {
                                                                       Scalar>(level, std::forward<Func>(f), cellx,
                                                                               celly);
         } else {
-            /*auto qx = CollectedQuadratureDynamic<QuadruleX, Scalar>(level);
+            auto qx = CollectedQuadratureDynamic<QuadruleX, Scalar>(level);
             auto qy = CollectedQuadratureDynamic<QuadruleY, Scalar>(level);
-            return quadints::integrate2<qx, qy, DomainX, DomainY, Func, Scalar>(std::forward<Func>(f), cellx, celly);
-            */
-            // TODO: change after testing 1d integration.
-            throw std::runtime_error("level exceeds comptime_max_level_2d");
+            return detail::integrate2_collect(std::forward<Func>(f), cellx, celly, qx.points(), qx.weights(),
+                                              qy.points(), qy.weights());
         }
     }
     Criterion criterion;
