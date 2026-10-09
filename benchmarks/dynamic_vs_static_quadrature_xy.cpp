@@ -14,44 +14,56 @@ using namespace quadints;
 
 template <size_t p>
 struct xpyp {
-    double operator()(const point2d& point) const { return std::pow(point.coords[0] * point.coords[1], p); }
+    double operator()(const point2d& pointx, const point2d& pointy) const {
+        return std::pow(pointx.coords[0] + pointy.coords[1], p);
+    }
 };
 struct constant {
-    double operator()(const point2d& point) const { return 1.0; }
+    double operator()(const point2d& pointx, const point2d& pointy) const { return 1.0; }
 };
 
 struct expir {
-    auto operator()(const point2d& point) -> std::complex<double> {
-        return std::exp(norm(point) * std::complex<double>{0., 1.});
+    auto operator()(const point2d& pointx, const point2d& pointy) -> std::complex<double> {
+        auto r = norm(pointx - pointy);
+        return std::exp(r * std::complex<double>{0., 1.});
     }
 };
 
 namespace {
 template <typename QuadRule, typename Integrand>
 void BM_dynamic_quadrature(benchmark::State& state) {
-    size_t n = 10'000;
+    size_t n = 50;
     std::vector<Triangle> triangles = generate_random_triangles(n);
     size_t level = state.range(0);
     auto integrator = CollectedQuadratureDynamic<QuadRule>(level);
-    auto points = integrator.points();
-    auto weights = integrator.weights();
-    size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(detail::integrate_collect(Integrand{}, triangles[i], points, weights));
-        i = (i + 1) % n;
+        for (size_t i = 0; i < n; ++i) {
+            for (size_t j = 0; j < n; ++j) {
+                benchmark::DoNotOptimize(detail::integrate2_collect(Integrand{}, triangles[i], triangles[j],
+                                                                    integrator.points(), integrator.weights(),
+                                                                    integrator.points(), integrator.weights()));
+            }
+        }
     }
+    state.counters["time_per_elem"] =
+        benchmark::Counter(n * n, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 }
 
 template <typename QuadRule, typename Integrand, size_t depth>
 void BM_static_quadrature(benchmark::State& state) {
-    size_t n = 10'000;
+    size_t n = 50;
     std::vector<Triangle> triangles = generate_random_triangles(n);
-    size_t i = 0;
     using quad = CollectedQuadratureStatic<QuadRule, depth, double>;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(detail::integrate_collect<quad>(Integrand{}, triangles[i]));
-        i = (i + 1) % n;
+        for (size_t i = 0; i < n; ++i) {
+            for (size_t j = 0; j < n; ++j) {
+                benchmark::DoNotOptimize(
+                    detail::integrate2_collect<quad, quad>(Integrand{}, triangles[i], triangles[j]));
+            }
+        }
     }
+    state.counters["time_per_elem"] =
+        benchmark::Counter(n * n, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 }
 
 }  // namespace
@@ -98,6 +110,6 @@ BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, expir, 3>);
 BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, expir, 3>);
 BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, expir, 3>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(10)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(5)->ArgName("depth");
 
 BENCHMARK_MAIN();
