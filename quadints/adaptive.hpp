@@ -44,8 +44,8 @@ template <size_t Level>
 struct IntegrateDispatcher2d {
     template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Func,
               typename Scalar>
-    static auto call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly)
-        -> return_type_2d<Func, DomainX, DomainY> {
+    static auto call(size_t level, Func&& f, const DomainX& cellx,
+                     const DomainY& celly) -> return_type_2d<Func, DomainX, DomainY> {
         if (level == Level) {
             using q1 = CollectedQuadratureStatic<QuadruleX, Level, Scalar>;
             using q2 = CollectedQuadratureStatic<QuadruleY, Level, Scalar>;
@@ -61,8 +61,8 @@ template <>
 struct IntegrateDispatcher2d<0> {
     template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Func,
               typename Scalar>
-    static auto call(size_t level, Func&& f, const DomainX& cellx, const DomainY& celly)
-        -> return_type_2d<Func, DomainX, DomainY> {
+    static auto call(size_t level, Func&& f, const DomainX& cellx,
+                     const DomainY& celly) -> return_type_2d<Func, DomainX, DomainY> {
         if (level == 0) {
             using q1 = CollectedQuadratureStatic<QuadruleX, 0, Scalar>;
             using q2 = CollectedQuadratureStatic<QuadruleY, 0, Scalar>;
@@ -135,7 +135,7 @@ class AdaptiveIntegrator {
 
     template <typename Func, typename Callback>
         requires integrable<Func, typename Domain::point_type, Scalar> &&
-                 IntegratorCallback<Callback, return_type<Func, Domain>>
+                     IntegratorCallback<Callback, return_type<Func, Domain>>
     constexpr auto integrate(Func&& f, const Domain& cell, Callback&& callback) -> return_type<Func, Domain> {
         using rt = return_type<Func, Domain>;
         rt cur_integral = integrate_over_level(f, cell, start_level);
@@ -169,8 +169,8 @@ class AdaptiveIntegrator2d {
     static_assert(quadrature_rule<QuadruleY, DomainY, Scalar>, "QuadruleY must be a quadrature rule for DomainY");
     static_assert(StopCriterion<Criterion, Scalar>, "Criterion must be a stop criterion for Scalar");
     template <typename Func>
-    constexpr auto integrate_over_level(Func&& f, const DomainX& cellx, const DomainY& celly, size_t level)
-        -> return_type_2d<Func, DomainX, DomainY> {
+    constexpr auto integrate_over_level(Func&& f, const DomainX& cellx, const DomainY& celly,
+                                        size_t level) -> return_type_2d<Func, DomainX, DomainY> {
         if (level <= comptime_max_level_2d) {
             return IntegrateDispatcher2d<comptime_max_level_2d>::call<QuadruleX, QuadruleY, DomainX, DomainY, Func,
                                                                       Scalar>(level, std::forward<Func>(f), cellx,
@@ -192,8 +192,8 @@ class AdaptiveIntegrator2d {
 
     template <typename Func>
         requires integrable2<Func, typename DomainX::point_type, typename DomainY::point_type, Scalar>
-    constexpr auto integrate(Func&& f, const DomainX& cellx, const DomainY& celly)
-        -> return_type_2d<Func, DomainX, DomainY> {
+    constexpr auto integrate(Func&& f, const DomainX& cellx,
+                             const DomainY& celly) -> return_type_2d<Func, DomainX, DomainY> {
         using rt = return_type_2d<Func, DomainX, DomainY>;
         rt cur_integral = integrate_over_level(f, cellx, celly, start_level);
         rt prev_integral{};
@@ -208,9 +208,9 @@ class AdaptiveIntegrator2d {
     }
     template <typename Func, typename Callback>
         requires integrable2<Func, typename DomainX::point_type, typename DomainY::point_type, Scalar> &&
-                 IntegratorCallback<Callback, return_type_2d<Func, DomainX, DomainY>>
-    constexpr auto integrate(Func&& f, const DomainX& cellx, const DomainY& celly, Callback&& callback)
-        -> return_type_2d<Func, DomainX, DomainY> {
+                     IntegratorCallback<Callback, return_type_2d<Func, DomainX, DomainY>>
+    constexpr auto integrate(Func&& f, const DomainX& cellx, const DomainY& celly,
+                             Callback&& callback) -> return_type_2d<Func, DomainX, DomainY> {
         using rt = return_type_2d<Func, DomainX, DomainY>;
         rt cur_integral = integrate_over_level(f, cellx, celly, start_level);
         rt prev_integral{};

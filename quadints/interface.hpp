@@ -35,8 +35,8 @@ scalar magnitude(T t) {
 template <typename scalar, typename T>
 concept banach_vec = requires(scalar alpha, T t, T u) {
     t + u;
-    t * alpha;
-    alpha * t;
+    t* alpha;
+    alpha* t;
     t += u;
     t *= alpha;
     requires has_magnitude<T, scalar>;
@@ -144,8 +144,8 @@ concept has_batch_func2 =
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = std::decay_t<decltype(*(QuadRule::weights.begin()))>>
     requires quadrature_rule<QuadRule, Domain, Scalar> && integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate_collect(Func&& f, const Domain& cell)
-    -> std::invoke_result_t<Func, typename Domain::point_type> {
+constexpr auto integrate_collect(Func&& f,
+                                 const Domain& cell) -> std::invoke_result_t<Func, typename Domain::point_type> {
     using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
     return_type res{};
     std::array<return_type, QuadRule::n_points> func_arr;
