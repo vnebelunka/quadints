@@ -14,7 +14,7 @@ TEST(split_triangle, depth0) {
     constexpr point2d b{1.0, 0.0};
     constexpr point2d c{0.0, 1.0};
     constexpr Triangle tri{a, b, c};
-    auto qp = TriangleRange<double, 0>().to_vector();
+    auto qp = TriangleRangeStatic<double, 0>().to_vector();
     ASSERT_EQ(qp.size(), 1);
     for (auto tqp : qp) {
         std::cerr << "tqp:\n";
@@ -33,7 +33,7 @@ TEST(split_triangle, depth0) {
 
 TEST(split_triangle, depth0_midpoint) {
     using TriangleMidpointRule = TriangleQuadrature<double, 1>;
-    auto quad_points = TriangleRange<double, 0>().collect_quadrature_points<TriangleMidpointRule>();
+    auto quad_points = TriangleRangeStatic<double, 0>().collect_quadrature_points<TriangleMidpointRule>();
     ASSERT_EQ(quad_points.size(), 1);
     for (auto qp : quad_points) {
         ASSERT_NEAR(qp.x(), 1. / 3, 1e-15);
@@ -44,7 +44,7 @@ TEST(split_triangle, depth0_midpoint) {
 
 TEST(split_triangle, depth1_midpoint) {
     using TriangleMidpointRule = TriangleQuadrature<double, 1>;
-    auto quad_points = TriangleRange<double, 1>().collect_quadrature_points<TriangleMidpointRule>();
+    auto quad_points = TriangleRangeStatic<double, 1>().collect_quadrature_points<TriangleMidpointRule>();
     ASSERT_EQ(quad_points.size(), 4);
     std::sort(quad_points.begin(), quad_points.end(),
               [](const auto& a, const auto& b) { return a.x() < b.x() || (a.x() == b.x() && a.y() < b.y()); });
@@ -67,7 +67,7 @@ TEST(split_triangle, depth1_midpoint) {
 }
 
 TEST(split_triangle, depth0_midpoint_quadrature) {
-    using quad = CollectedQuadrature<TriangleQuadrature<double, 1>, 0, double>;
+    using quad = CollectedQuadratureStatic<TriangleQuadrature<double, 1>, 0, double>;
     ASSERT_EQ(quad::n_points, 1);
     constexpr auto w = quad::weights[0];
     ASSERT_NEAR(w, 1., 1e-15);
@@ -78,7 +78,7 @@ TEST(split_triangle, depth0_midpoint_quadrature) {
 }
 
 TEST(split_triangle, depth1_midpoint_quadrature) {
-    using quad = CollectedQuadrature<TriangleQuadrature<double, 1>, 1, double>;
+    using quad = CollectedQuadratureStatic<TriangleQuadrature<double, 1>, 1, double>;
     ASSERT_EQ(quad::n_points, 4);
     constexpr auto weights = quad::weights;
     constexpr auto check_if_constexpr_points = quad::points;
@@ -105,7 +105,7 @@ TEST(split_triangle, depth1_midpoint_quadrature) {
 }
 
 TEST(split_triangle, depth1_midpoint_quadrature_integration) {
-    using quad = CollectedQuadrature<TriangleQuadrature<double, 1>, 1, double>;
+    using quad = CollectedQuadratureStatic<TriangleQuadrature<double, 1>, 1, double>;
     auto constant = [](point2d) { return 5.0; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto result = integrate<quad>(constant, tri_unit);

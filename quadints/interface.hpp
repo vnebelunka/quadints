@@ -22,8 +22,8 @@ concept has_abs = requires(T t) {
 template <typename T, typename scalar>
 concept has_magnitude = has_norm<T, scalar> || has_abs<T, scalar>;
 
-template<typename T, typename scalar>
-requires has_magnitude<T, scalar>
+template <typename T, typename scalar>
+    requires has_magnitude<T, scalar>
 scalar magnitude(T t) {
     if constexpr (has_norm<T, scalar>) {
         return norm(t);
@@ -32,12 +32,11 @@ scalar magnitude(T t) {
     }
 }
 
-
 template <typename scalar, typename T>
 concept banach_vec = requires(scalar alpha, T t, T u) {
     t + u;
-    t * alpha;
-    alpha * t;
+    t* alpha;
+    alpha* t;
     t += u;
     t *= alpha;
     requires has_magnitude<T, scalar>;
@@ -65,7 +64,10 @@ template <typename F, typename arg, typename Scalar>
 concept integrable = requires(F f, arg x) { requires banach_vec<Scalar, decltype(f(x))>; };
 
 template <typename F, typename arg1, typename arg2, typename Scalar>
-concept integrable2 = requires(F f, arg1 x, arg2 y) { requires banach_vec<Scalar, decltype(f(x, y))>; };
+concept integrable2 = requires(F f, arg1 x, arg2 y) {
+    { f(x, y) };
+    requires banach_vec<Scalar, decltype(f(x, y))>;
+};
 
 namespace detail {
 
@@ -96,6 +98,11 @@ concept has_batch_to_domain = requires(const Domain& cell, const std::array<RefP
     { to_domain<N>(cell, ref_pts) } -> std::convertible_to<std::array<DomainPoint, N>>;
 };
 
+template <typename Domain, typename RefPoint, typename DomainPoint>
+concept has_batch_to_domain_dynamic = requires(const Domain& cell, const std::vector<RefPoint>& ref_pts) {
+    { to_domain(cell, ref_pts) } -> std::convertible_to<std::vector<DomainPoint>>;
+};
+
 template <typename QuadRule, typename Domain>
 auto get_domain_points(const Domain& cell) -> std::array<typename Domain::point_type, QuadRule::n_points> {
     std::array<typename Domain::point_type, QuadRule::n_points> res;
@@ -108,6 +115,19 @@ auto get_domain_points(const Domain& cell) -> std::array<typename Domain::point_
         }
     }
     return res;
+}
+
+template <typename BarPointType, typename Domain>
+auto get_domain_points(const Domain& cell, const std::vector<BarPointType>& points) {
+    if constexpr (has_batch_to_domain_dynamic<Domain, BarPointType, typename Domain::point_type>) {
+        return to_domain(cell, points);
+    } else {
+        std::vector<typename Domain::point_type> res(points.size());
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            res[i] = points[i].to_domain(cell);
+        }
+        return res;
+    }
 }
 
 template <typename Func, typename DomainPoint, std::size_t N>
@@ -124,8 +144,8 @@ concept has_batch_func2 =
 template <typename QuadRule, typename Domain, typename Func,
           typename Scalar = std::decay_t<decltype(*(QuadRule::weights.begin()))>>
     requires quadrature_rule<QuadRule, Domain, Scalar> && integrable<Func, typename Domain::point_type, Scalar>
-constexpr auto integrate_collect(Func&& f, const Domain& cell)
-    -> std::invoke_result_t<Func, typename Domain::point_type> {
+constexpr auto integrate_collect(Func&& f,
+                                 const Domain& cell) -> std::invoke_result_t<Func, typename Domain::point_type> {
     using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
     return_type res{};
     std::array<return_type, QuadRule::n_points> func_arr;
@@ -139,6 +159,23 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell)
     }
     for (size_t i = 0; i < QuadRule::n_points; ++i) {
         res += func_arr[i] * QuadRule::weights[i];
+    }
+    return res * cell.mes();
+}
+
+template <typename Domain, typename Func, typename QuadRulePointType, typename Scalar>
+constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector<QuadRulePointType>& quad_rule_points,
+                                 const std::vector<Scalar>& quad_rule_weights)
+    -> std::invoke_result_t<Func, typename Domain::point_type> {
+    using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+    return_type res{};
+    auto domain_points = get_domain_points(cell, quad_rule_points);
+    std::vector<return_type> func_arr(quad_rule_points.size());
+    for (std::size_t i = 0; i < quad_rule_points.size(); ++i) {
+        func_arr[i] = std::invoke(f, domain_points[i]);
+    }
+    for (std::size_t i = 0; i < quad_rule_weights.size(); ++i) {
+        res += func_arr[i] * quad_rule_weights[i];
     }
     return res * cell.mes();
 }
@@ -201,6 +238,40 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
     }
     return res * cell1.mes() * cell2.mes();
 };
+
+template <typename Domain1, typename Domain2, typename Func, typename QuadRule1PointType1, typename QuadRule2PointType2,
+          typename Scalar = decltype(Domain2().mes())>
+    requires integrable2<Func, typename Domain1::point_type, typename Domain2::point_type, Scalar>
+constexpr auto integrate2_collect(Func&& f, const Domain1& cell_x, const Domain2& cell_y,
+                                  const std::vector<QuadRule1PointType1>& quad_rule_points_x,
+                                  const std::vector<Scalar>& quad_rule_weights_x,
+                                  const std::vector<QuadRule2PointType2>& quad_rule_points_y,
+                                  const std::vector<Scalar>& quad_rule_weights_y) {
+    using rt = std::invoke_result_t<Func, typename Domain1::point_type, typename Domain2::point_type>;
+    auto domain_points_x = get_domain_points(cell_x, quad_rule_points_x);
+    auto domain_points_y = get_domain_points(cell_y, quad_rule_points_y);
+    std::vector<rt> func_arr(quad_rule_points_x.size() * quad_rule_points_y.size());
+    size_t Nx = quad_rule_points_x.size();
+    size_t Ny = quad_rule_weights_y.size();
+
+    for (size_t j = 0; j < Ny; ++j) {
+        for (size_t i = 0; i < Nx; ++i) {
+            func_arr[j * Ny + i] = std::invoke(f, domain_points_x[i], domain_points_y[j]);
+        }
+    }
+
+    rt res{};
+
+    for (size_t index_y = 0; index_y < Ny; ++index_y) {
+        rt resj = 0;
+        Scalar wj = quad_rule_weights_y[index_y];
+        for (size_t index_x = 0; index_x < Nx; ++index_x) {
+            resj += func_arr[index_y * Nx + index_x] * quad_rule_weights_x[index_x];
+        }
+        res += resj * wj;
+    }
+    return res * cell_x.mes() * cell_y.mes();
+}
 
 }  // namespace detail
 

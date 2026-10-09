@@ -69,7 +69,9 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e6) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-6)}, 10, 0);
-    EXPECT_THROW(integrator.integrate(cubic, tri_unit);, std::runtime_error);
+    double expected = 1. / 20;
+    auto result = integrator.integrate(cubic, tri_unit);
+    EXPECT_NEAR(result, expected, 3e-6);
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPoint0degree) {
@@ -130,9 +132,11 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist2triangles1e5) {
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
     auto integrator = make_adaptive_integrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle>(
-        DefaultCriterion(Atol(0.), Rtol(1e-5)), 10, 0);
-    EXPECT_THROW(integrator.integrate(dist, tri_unit1, tri_unit2), std::runtime_error);
-    // EXPECT_NEAR(result, expected, 3e-5 * std::abs(expected));
+        DefaultCriterion(Atol(0.), Rtol(1e-5)), 7, 0);
+    auto result = integrator.integrate(dist, tri_unit1, tri_unit2);
+    auto expected = 0.157129;
+    // EXPECT_THROW(integrator.integrate(dist, tri_unit1, tri_unit2), std::runtime_error);
+    EXPECT_NEAR(result, expected, 3e-5 * std::abs(expected));
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, SecondDegreeDist) {

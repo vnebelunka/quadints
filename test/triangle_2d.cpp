@@ -14,11 +14,9 @@ class TriangleIntegrationTest : public ::testing::Test {
    protected:
     void SetUp() override {
         // Unit right triangle: (0,0), (1,0), (0,1)
-        tri_unit =
-            Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
         // Custom triangle: (1,1), (4,1), (1,3)
-        tri_custom =
-            Triangle{point2d{1.0, 1.0}, point2d{4.0, 1.0}, point2d{1.0, 3.0}};
+        tri_custom = Triangle{point2d{1.0, 1.0}, point2d{4.0, 1.0}, point2d{1.0, 3.0}};
     }
     Triangle tri_unit;
     Triangle tri_custom;
@@ -76,13 +74,9 @@ TEST_F(TriangleIntegrationTest, Gauss3Rule_QuadraticXYLambda) {
 
 // ----- 3‑point Gauss rule (exact for degree ≤2) -----
 TEST_F(TriangleIntegrationTest, Gauss3Rule_CubicLambdaNotExact) {
-    auto cubic = [](point2d p) {
-        return p.coords[0] * p.coords[0] * p.coords[0];
-    };
+    auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     double result = integrate<TriangleGauss3Rule>(cubic, tri_unit);
-    double exact_cubic =
-        1.0 /
-        20.0;  // 3‑point rule is not exact for cubic; we check it differs.
+    double exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
     EXPECT_NE(result, exact_cubic);
 }
 
@@ -90,17 +84,13 @@ TEST_F(TriangleIntegrationTest, Gauss3Rule_CubicLambdaNotExact) {
 using TriangleGauss4Rule = TriangleQuadrature<double, 7>;
 
 TEST_F(TriangleIntegrationTest, Gauss4Rule_CubicLambda) {
-    auto cubic = [](point2d p) {
-        return p.coords[0] * p.coords[0] * p.coords[0];
-    };
+    auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     double result = integrate<TriangleGauss4Rule>(cubic, tri_unit);
     EXPECT_NEAR(result, 1.0 / 20.0, 1e-12);
 }
 
 TEST_F(TriangleIntegrationTest, Gauss4Rule_QuarticLambdaNotExact) {
-    auto quartic = [](point2d p) {
-        return p.coords[0] * p.coords[0] * p.coords[0] * p.coords[0];
-    };
+    auto quartic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0] * p.coords[0]; };
     double result = integrate<TriangleGauss4Rule>(quartic, tri_unit);
     double exact_quartic = 1.0 / 30.0;
     EXPECT_NE(result, exact_quartic);
