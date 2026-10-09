@@ -106,7 +106,7 @@ TEST_F(Integration1DTest, GaussLegendre2_CubicLambda) {
 }
 
 TEST_F(Integration1DTest, GaussLegendre2_SineLambda) {
-    Segment seg_pi{0.0, M_PI};
+    Segment seg_pi{0.0, std::numbers::pi};
     auto sine = [](double x) { return std::sin(x); };
     double result = integrate<GaussLegendre2>(sine, seg_pi);
     EXPECT_NEAR(result, 2.0, 1e-1);
@@ -141,7 +141,7 @@ TEST_F(Integration1DTest, GaussLegendre3_SexticLambda_NotExact) {
 }
 
 TEST_F(Integration1DTest, GaussLegendre3_SineOnPi_MoreAccurate) {
-    Segment seg_pi{0.0, M_PI};
+    Segment seg_pi{0.0, std::numbers::pi};
     auto sine = [](double x) { return std::sin(x); };
     double result = integrate<GaussLegendre3>(sine, seg_pi);
     double exact = 2.0;
