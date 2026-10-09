@@ -19,7 +19,7 @@ target_include_directories(integration_lib INTERFACE
 # Testing
 # ------------------------------
 option(BUILD_TESTS "Build unit tests" ON)
-option(BUILD_BENCHMARKS "Build benchmarks" ON)
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 if(BUILD_TESTS)
   enable_testing()
