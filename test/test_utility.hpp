@@ -33,7 +33,7 @@ inline double norm(const point2d& p) { return std::sqrt(p.coords[0] * p.coords[0
 struct Triangle {
     using point_type = point2d;
     std::array<point2d, 3> _vertices;
-    constexpr double mes() const {
+    double mes() const {
         // Compute the area of the triangle using the determinant formula
         const auto& A = _vertices[0].coords;
         const auto& B = _vertices[1].coords;

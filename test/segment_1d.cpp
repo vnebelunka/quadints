@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <numbers>
 
 #include "quadints/interface.hpp"
 #include "quadints/quads_segment.hpp"
