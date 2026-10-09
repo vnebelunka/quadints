@@ -40,3 +40,31 @@ TEST(TestDynamicIntegration, AdaptiveIntegration) {
     auto result = integrator.integrate(constant, tri_unit);
     ASSERT_NEAR(result, 0.5, 1e-12);
 }
+
+TEST(TestDynamicIntegratopn, MidPointRule_constant_xy) {
+    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+    MidPointDynamic integrator;
+    auto constant = [](const point2d& px, const point2d& py) { return 1.0; };
+    auto result = detail::integrate2_collect(constant, tri_unit, tri_unit, integrator.points(), integrator.weights(),
+                                             integrator.points(), integrator.weights());
+    ASSERT_NEAR(result, 0.25, 1e-12);
+}
+
+TEST(TestDynamicIntegration, CollectedQuadrature_constant_xy) {
+    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+    auto integrator = CollectedQuadratureDynamic<TriangleQuadrature<double, 1>>(1);
+    auto constant = [](const point2d& px, const point2d& py) { return 1.0; };
+    auto result = detail::integrate2_collect(constant, tri_unit, tri_unit, integrator.points(), integrator.weights(),
+                                             integrator.points(), integrator.weights());
+    ASSERT_NEAR(result, 0.25, 1e-12);
+}
+
+TEST(TestDynamicIntegration, AdaptiveIntegration_xy) {
+    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+    using TriangleMidpointRule = TriangleQuadrature<double, 1>;
+    auto integrator = make_adaptive_integrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle>(
+        DefaultCriterion(Atol(0.), Rtol(1e-5)), 10, 0);
+    auto constant = [](const point2d& px, const point2d& py) { return 1.0; };
+    auto result = integrator.integrate(constant, tri_unit, tri_unit);
+    ASSERT_NEAR(result, 0.25, 1e-12);
+}
