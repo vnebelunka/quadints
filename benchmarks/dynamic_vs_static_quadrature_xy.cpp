@@ -12,14 +12,16 @@
 #include "triangle_utility.hpp"
 using namespace quadints;
 
+namespace {
 template <size_t p>
 struct xpyp {
-    double operator()(const point2d& pointx, const point2d& pointy) const {
+    auto operator()(const point2d& pointx, const point2d& pointy) const -> double {
         return std::pow(pointx.coords[0] + pointy.coords[1], p);
     }
 };
+
 struct constant {
-    double operator()(const point2d& pointx, const point2d& pointy) const { return 1.0; }
+    auto operator()(const point2d& pointx, const point2d& pointy) const -> double { return 1.0; }
 };
 
 struct expir {
@@ -29,9 +31,8 @@ struct expir {
     }
 };
 
-namespace {
 template <typename QuadRule, typename Integrand>
-void BM_dynamic_quadrature(benchmark::State& state) {
+void BM_dynamic_quadrature_xy(benchmark::State& state) {
     size_t n = 50;
     std::vector<Triangle> triangles = generate_random_triangles(n);
     size_t level = state.range(0);
@@ -50,7 +51,7 @@ void BM_dynamic_quadrature(benchmark::State& state) {
 }
 
 template <typename QuadRule, typename Integrand, size_t depth>
-void BM_static_quadrature(benchmark::State& state) {
+void BM_static_quadrature_xy(benchmark::State& state) {
     size_t n = 50;
     std::vector<Triangle> triangles = generate_random_triangles(n);
     using quad = CollectedQuadratureStatic<QuadRule, depth, double>;
@@ -68,48 +69,48 @@ void BM_static_quadrature(benchmark::State& state) {
 
 }  // namespace
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, constant>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, constant>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, constant>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, constant, 1>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, constant, 1>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, constant, 1>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, constant>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, constant>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, constant>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, constant, 1>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, constant, 1>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, constant, 1>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, constant>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, constant>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, constant>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, constant, 2>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, constant, 2>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, constant, 2>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, constant>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, constant>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, constant>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, constant, 2>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, constant, 2>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, constant, 2>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, constant>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, constant>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, constant>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, constant, 3>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, constant, 3>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, constant, 3>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, constant>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, constant>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, constant>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, constant, 3>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, constant, 3>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, constant, 3>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, expir>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, expir>)->Arg(1)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, expir, 1>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, expir, 1>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, expir, 1>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, expir>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, expir>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, expir>)->Arg(1)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, expir, 1>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, expir, 1>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, expir, 1>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, expir>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, expir>)->Arg(2)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, expir, 2>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, expir, 2>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, expir, 2>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, expir>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, expir>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, expir>)->Arg(2)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, expir, 2>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, expir, 2>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, expir, 2>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 3>, expir>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 7>, expir>)->Arg(3)->ArgName("depth");
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 1>, expir, 3>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 3>, expir, 3>);
-BENCHMARK(BM_static_quadrature<TriangleQuadrature<double, 7>, expir, 3>);
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, expir>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 3>, expir>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 7>, expir>)->Arg(3)->ArgName("depth");
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 1>, expir, 3>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 3>, expir, 3>);
+BENCHMARK(BM_static_quadrature_xy<TriangleQuadrature<double, 7>, expir, 3>);
 
-BENCHMARK(BM_dynamic_quadrature<TriangleQuadrature<double, 1>, expir>)->Arg(5)->ArgName("depth");
+BENCHMARK(BM_dynamic_quadrature_xy<TriangleQuadrature<double, 1>, expir>)->Arg(5)->ArgName("depth");
 
 BENCHMARK_MAIN();

@@ -21,7 +21,7 @@ TEST(TestDynamicIntegration, MidPointRule_constant) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     MidPointDynamic integrator;
     auto constant = [](const point2d& p) { return 1.0; };
-    auto result = detail::integrate_collect(constant, tri_unit, integrator.points(), integrator.weights());
+    auto result = detail::integrate_collect(constant, tri_unit, integrator);
     ASSERT_NEAR(result, 0.5, 1e-12);
 }
 
@@ -29,7 +29,7 @@ TEST(TestDynamicIntegration, CollectedQuadrature_constant) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator = CollectedQuadratureDynamic<TriangleQuadrature<double, 1>>(1);
     auto constant = [](const point2d& p) { return 1.0; };
-    auto result = detail::integrate_collect(constant, tri_unit, integrator.points(), integrator.weights());
+    auto result = detail::integrate_collect(constant, tri_unit, integrator);
     ASSERT_NEAR(result, 0.5, 1e-12);
 }
 
