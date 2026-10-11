@@ -16,10 +16,18 @@ repos:
       - id: clang-format
         types_or: [c++, c, cuda]
         args: [--style=file]  # Раскомментируйте, если используете .clang-format
-
   - repo: local
     hooks:
       - id: cmake-build-test
+        name: Cmake Build & Test with existing build
+        entry: bash -c 'cmake --build build --parallel && ctest --test-dir build --output-on-failure'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+    hooks:
+      - id: cmake-build-test-clear
         name: CMake Build & Test
         entry: bash -c 'cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON && cmake --build build --parallel && ctest --test-dir build --output-on-failure'
         language: system
