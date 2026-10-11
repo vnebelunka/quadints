@@ -22,6 +22,7 @@ repos:
         name: Cmake Build & Test with existing build
         entry: bash -c 'cmake --build build --parallel && ctest --test-dir build --output-on-failure'
         language: system
+        stages: [pre-commit]
         pass_filenames: false
         always_run: true
 
