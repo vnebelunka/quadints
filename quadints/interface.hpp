@@ -180,6 +180,11 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector
     return res * cell.mes();
 }
 
+template <typename Domain, typename Func, typename RuntimeQuadRule, typename Scalar = decltype(Domain().mes())>
+constexpr auto integrate_collect(Func&& f, const Domain& cell, const RuntimeQuadRule& quad) {
+    return integrate_collect(f, cell, quad.points(), quad.weights());
+}
+
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1, typename Domain2, typename Func,
           typename Scalar = decltype(*(QuadRule1::weights.begin()))>
     requires quadrature_rule<QuadRule1, Domain1, Scalar> && quadrature_rule<QuadRule2, Domain2, Scalar> &&

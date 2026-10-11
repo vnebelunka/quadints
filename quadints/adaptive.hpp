@@ -104,8 +104,7 @@ class AdaptiveIntegrator {
                 level, std::forward<Func>(f), cell);
         } else {
             auto q = quadints::CollectedQuadratureDynamic<Quadrule, Scalar>(level);
-            return quadints::detail::integrate_collect<Domain, Func, typename Quadrule::point_type, Scalar>(
-                std::forward<Func>(f), cell, q.points(), q.weights());
+            return quadints::detail::integrate_collect(std::forward<Func>(f), cell, q);
         }
     }
     Criterion criterion;
