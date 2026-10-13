@@ -177,8 +177,7 @@ class AdaptiveIntegrator2d {
         } else {
             auto qx = CollectedQuadratureDynamic<QuadruleX, Scalar>(level);
             auto qy = CollectedQuadratureDynamic<QuadruleY, Scalar>(level);
-            return detail::integrate2_collect(std::forward<Func>(f), cellx, celly, qx.points(), qx.weights(),
-                                              qy.points(), qy.weights());
+            return detail::integrate2_collect(std::forward<Func>(f), cellx, celly, qx, qy);
         }
     }
     Criterion criterion;

@@ -278,6 +278,14 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell_x, const Domain2
     return res * cell_x.mes() * cell_y.mes();
 }
 
+template <typename Domain1, typename Domain2, typename Func, typename DynamicQuadRuleX, typename DynamicWaudRuleY,
+          typename Scalar = decltype(Domain2().mes())>
+    requires integrable2<Func, typename Domain1::point_type, typename Domain2::point_type, Scalar>
+constexpr auto integrate2_collect(Func&& f, const Domain1& cellx, const Domain2& celly, const DynamicQuadRuleX& quadx,
+                                  const DynamicWaudRuleY& quady) {
+    return integrate2_collect(f, cellx, celly, quadx.points(), quadx.weights(), quady.points(), quady.weights());
+}
+
 }  // namespace detail
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1, typename Domain2, typename Func,
