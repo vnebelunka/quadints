@@ -30,7 +30,7 @@ repos:
     hooks:
       - id: cmake-build-test-clear
         name: CMake Build & Test
-        entry: bash -c 'cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON && cmake --build build --parallel && ctest --test-dir build --output-on-failure'
+        entry: bash -c 'cmake -S . -B build_tmp -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON && cmake --build build_tmp --parallel && ctest --test-dir build_tmp --output-on-failure && rm -rf build_tmp'
         language: system
         stages: [pre-push]
         pass_filenames: false
