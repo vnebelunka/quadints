@@ -180,9 +180,31 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector
     return res * cell.mes();
 }
 
+template <typename Domain, typename Func, typename QuadRulePointType, typename BufferT,
+          typename Scalar = decltype(Domain().mes())>
+constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector<QuadRulePointType>& quad_rule_points,
+                                 const std::vector<Scalar>& quad_rule_weights, BufferT& buff) {
+    using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
+    return_type res{};
+    auto domain_points = get_domain_points(cell, quad_rule_points);
+    for (size_t i = 0; i < quad_rule_points.size(); ++i) {
+        buff[i] = std::invoke(f, domain_points[i]);
+    }
+    for (size_t i = 0; i < quad_rule_weights.size(); ++i) {
+        res += buff[i] * quad_rule_weights[i];
+    }
+    return res * cell.mes();
+}
+
 template <typename Domain, typename Func, typename RuntimeQuadRule, typename Scalar = decltype(Domain().mes())>
 constexpr auto integrate_collect(Func&& f, const Domain& cell, const RuntimeQuadRule& quad) {
     return integrate_collect(f, cell, quad.points(), quad.weights());
+}
+
+template <typename Domain, typename Func, typename RuntimeQuadRule, typename BufferT,
+          typename Scalar = decltype(Domain().mes())>
+constexpr auto integrate_collect(Func&& f, const Domain& cell, const RuntimeQuadRule& quad, BufferT& buff) {
+    return integrate_collect(f, cell, quad.points(), quad.weights(), buff);
 }
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1, typename Domain2, typename Func,
