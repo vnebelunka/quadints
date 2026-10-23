@@ -2,18 +2,16 @@
 #define QUADINTS_ADAPTIVE_HPP
 #include <compare>
 #include <memory>
+#include <utility>
 
 #include "StopCriterion.hpp"
-#include "interface.hpp"
+#include "quadints/common/common.hpp"
+#include "quadints/integrate/integrate_collect.hpp"
+#include "quadints/quadratures/collected_quadrature.hpp"
 #include "splitter_triangle.hpp"
 namespace quadints {
 
 static constexpr size_t comptime_max_level = 6;
-
-template <typename Func, typename Domain>
-using return_type = std::invoke_result_t<Func, typename Domain::point_type>;
-template <typename Func, typename DomainX, typename DomainY>
-using return_type_2d = std::invoke_result_t<Func, typename DomainX::point_type, typename DomainY::point_type>;
 
 template <size_t Level>
 struct IntegrateDispatcher {
@@ -21,10 +19,9 @@ struct IntegrateDispatcher {
     static auto call(size_t level, Func&& f, const Domain& cell) -> return_type<Func, Domain> {
         if (level == Level) {
             return quadints::integrate<CollectedQuadratureStatic<Quadrule, Level, Scalar>>(std::forward<Func>(f), cell);
-        } else {
-            return IntegrateDispatcher<Level - 1>::template call<Quadrule, Func, Domain, Scalar>(
-                level, std::forward<Func>(f), cell);
         }
+        return IntegrateDispatcher<Level - 1>::template call<Quadrule, Func, Domain, Scalar>(
+            level, std::forward<Func>(f), cell);
     }
 };
 
@@ -34,9 +31,8 @@ struct IntegrateDispatcher<0> {
     static auto call(size_t level, Func&& f, const Domain& cell) -> return_type<Func, Domain> {
         if (level == 0) {
             return quadints::integrate<CollectedQuadratureStatic<Quadrule, 0, Scalar>>(std::forward<Func>(f), cell);
-        } else {
-            throw std::runtime_error("reached comptime max level (" + std::to_string(comptime_max_level) + ")");
         }
+        throw std::runtime_error("reached comptime max level (" + std::to_string(comptime_max_level) + ")");
     }
 };
 
@@ -50,10 +46,9 @@ struct IntegrateDispatcher2d {
             using q1 = CollectedQuadratureStatic<QuadruleX, Level, Scalar>;
             using q2 = CollectedQuadratureStatic<QuadruleY, Level, Scalar>;
             return quadints::integrate2<q1, q2, DomainX, DomainY, Func, Scalar>(std::forward<Func>(f), cellx, celly);
-        } else {
-            return IntegrateDispatcher2d<Level - 1>::template call<QuadruleX, QuadruleY, DomainX, DomainY, Func,
-                                                                   Scalar>(level, std::forward<Func>(f), cellx, celly);
         }
+        return IntegrateDispatcher2d<Level - 1>::template call<QuadruleX, QuadruleY, DomainX, DomainY, Func, Scalar>(
+            level, std::forward<Func>(f), cellx, celly);
     }
 };
 
@@ -66,10 +61,9 @@ struct IntegrateDispatcher2d<0> {
         if (level == 0) {
             using q1 = CollectedQuadratureStatic<QuadruleX, 0, Scalar>;
             using q2 = CollectedQuadratureStatic<QuadruleY, 0, Scalar>;
-            return quadints::integrate2<q1, q2, DomainX, DomainY, Func, Scalar>(std::forward<Func>(f), cellx, celly);
-        } else {
-            throw std::runtime_error("Invalid level");
+            return integrate2<q1, q2, DomainX, DomainY, Func, Scalar>(std::forward<Func>(f), cellx, celly);
         }
+        throw std::runtime_error("Invalid level");
     }
 };
 
@@ -102,10 +96,9 @@ class AdaptiveIntegrator {
         if (level <= comptime_max_level) {
             return IntegrateDispatcher<comptime_max_level>::call<Quadrule, Func, Domain, Scalar>(
                 level, std::forward<Func>(f), cell);
-        } else {
-            auto q = quadints::CollectedQuadratureDynamic<Quadrule, Scalar>(level);
-            return quadints::detail::integrate_collect(std::forward<Func>(f), cell, q);
         }
+        auto q = CollectedQuadratureDynamic<Quadrule, Scalar>(level);
+        return detail::integrate_collect(std::forward<Func>(f), cell, q);
     }
     Criterion criterion;
     size_t max_level;
@@ -140,7 +133,7 @@ class AdaptiveIntegrator {
         rt cur_integral = integrate_over_level(f, cell, start_level);
         rt prev_integral{};
         bool stoped_early = false;
-        size_t cur_level;
+        size_t cur_level = 0;
         for (cur_level = start_level + 1; cur_level < max_level; ++cur_level) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cell, cur_level);
@@ -156,7 +149,7 @@ class AdaptiveIntegrator {
 
 template <typename Quadrule, typename Domain, typename Criterion>
 auto make_adaptive_integrator(Criterion&& c, std::size_t max_lvl, std::size_t start_lvl) {
-    return AdaptiveIntegrator<Quadrule, Domain, Criterion>(std::move(c), max_lvl, start_lvl);
+    return AdaptiveIntegrator<Quadrule, Domain, Criterion>(std::forward<Criterion>(c), max_lvl, start_lvl);
 }
 
 template <typename QuadruleX, typename QuadruleY, typename DomainX, typename DomainY, typename Criterion>
@@ -174,11 +167,10 @@ class AdaptiveIntegrator2d {
             return IntegrateDispatcher2d<comptime_max_level_2d>::call<QuadruleX, QuadruleY, DomainX, DomainY, Func,
                                                                       Scalar>(level, std::forward<Func>(f), cellx,
                                                                               celly);
-        } else {
-            auto qx = CollectedQuadratureDynamic<QuadruleX, Scalar>(level);
-            auto qy = CollectedQuadratureDynamic<QuadruleY, Scalar>(level);
-            return detail::integrate2_collect(std::forward<Func>(f), cellx, celly, qx, qy);
         }
+        auto qx = CollectedQuadratureDynamic<QuadruleX, Scalar>(level);
+        auto qy = CollectedQuadratureDynamic<QuadruleY, Scalar>(level);
+        return detail::integrate2_collect(std::forward<Func>(f), cellx, celly, qx, qy);
     }
     Criterion criterion;
     size_t max_level;
@@ -213,7 +205,7 @@ class AdaptiveIntegrator2d {
         rt cur_integral = integrate_over_level(f, cellx, celly, start_level);
         rt prev_integral{};
         bool stopped_early = false;
-        size_t curlevel;
+        size_t curlevel = 0;
         for (curlevel = start_level + 1; curlevel <= max_level; ++curlevel) {
             prev_integral = cur_integral;
             cur_integral = integrate_over_level(f, cellx, celly, curlevel);

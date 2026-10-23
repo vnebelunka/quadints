@@ -39,6 +39,7 @@ if(BUILD_TESTS)
         test/triangle_adaptive.cpp
         test/triangle_adaptive_callback.cpp
         test/dynamic_integration.cpp
+        test/collect_with_buffer.cpp
     )
   target_link_libraries(integration_tests
         PRIVATE
@@ -55,5 +56,5 @@ if(BUILD_TESTS)
 endif()
 
 if(BUILD_BENCHMARKS)
-    add_subdirectory(benchmarks)
+  add_subdirectory(benchmarks)
 endif()

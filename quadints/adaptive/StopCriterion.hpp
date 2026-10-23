@@ -1,6 +1,6 @@
 #ifndef QUADINTS_STOP_CRITERION_HPP
 #define QUADINTS_STOP_CRITERION_HPP
-#include "interface.hpp"
+#include "quadints/interface.hpp"
 
 namespace quadints {
 template <typename Scalar>
@@ -47,7 +47,8 @@ concept StopCriterion = requires(T t, CurrentIntegral<Scalar> cur, PreviousInteg
 struct NonAdaptiveCriterion {
     NonAdaptiveCriterion() = default;
     template <typename Scalar>
-    StopCriterionType operator()(CurrentIntegral<Scalar>, PreviousIntegral<Scalar>) const {
+    auto operator()(CurrentIntegral<Scalar> /*unused*/,
+                    PreviousIntegral<Scalar> /*unused*/) const -> StopCriterionType {
         return StopCriterionType::STOP;
     }
 };
@@ -60,10 +61,11 @@ struct DefaultCriterion {
     DefaultCriterion(Atol<Scalar> atol, Rtol<Scalar> rtol) : atol(atol), rtol(rtol) {}
 
     template <typename ReturnType>
-    StopCriterionType operator()(CurrentIntegral<ReturnType> current, PreviousIntegral<ReturnType> previous) const {
-        Scalar error =
+    auto operator()(CurrentIntegral<ReturnType> current,
+                    PreviousIntegral<ReturnType> previous) const -> StopCriterionType {
+        auto error =
             magnitude<ReturnType, Scalar>(static_cast<ReturnType>(current) - static_cast<ReturnType>(previous));
-        return error < atol + rtol * magnitude<ReturnType, Scalar>(static_cast<ReturnType>(current))
+        return error < atol + (rtol * magnitude<ReturnType, Scalar>(static_cast<ReturnType>(current)))
                    ? StopCriterionType::STOP
                    : StopCriterionType::CONTINUE;
     }

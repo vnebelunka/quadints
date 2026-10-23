@@ -5,10 +5,10 @@
 #include <random>
 #include <vector>
 
-#include "quadints/adaptive.hpp"
+#include "quadints/adaptive/adaptive.hpp"
+#include "quadints/adaptive/splitter_triangle.hpp"
 #include "quadints/interface.hpp"
-#include "quadints/quads_triangle.hpp"
-#include "quadints/splitter_triangle.hpp"
+#include "quadints/quadratures/quads_triangle.hpp"
 #include "triangle_utility.hpp"
 using namespace quadints;
 
@@ -33,9 +33,11 @@ void BM_dynamic_quadrature(benchmark::State& state) {
     std::vector<Triangle> triangles = generate_random_triangles(n);
     size_t level = state.range(0);
     auto integrator = CollectedQuadratureDynamic<QuadRule>(level);
+    auto size = integrator.points().size();
+    std::vector<decltype(Integrand{}(point2d{0., 0.}))> buf(size);
     size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(detail::integrate_collect(Integrand{}, triangles[i], integrator));
+        benchmark::DoNotOptimize(detail::integrate_collect(Integrand{}, triangles[i], integrator, buf));
         i = (i + 1) % n;
     }
 }
