@@ -5,7 +5,7 @@
 #include <cmath>
 #include <type_traits>
 
-#include "interface.hpp"
+#include "quadints/interface.hpp"
 
 template <typename QuadratureX, typename QuadratureY,
           typename Scalar = std::remove_cvref_t<decltype(QuadratureX::weights[0])>>
@@ -20,14 +20,14 @@ struct Quadrature_product {
         std::array<Scalar, dim_x + dim_y> coords;
         template <typename Domain>
             requires requires(barycentric_coord c, Domain d) { d.from_reference_domain(c); }
-        constexpr auto to_domain(const Domain& domain) const {
+        [[nodiscard]] constexpr auto to_domain(const Domain& domain) const {
             return domain.from_reference_domain(*this);
         }
     };
 
     using point_type = barycentric_coord;
 
-    constexpr static auto points = []() {
+    constexpr static auto points = []() -> auto {
         std::array<barycentric_coord, n_points> arr{};
         size_t idx = 0;
         for (size_t i = 0; i < QuadratureX::n_points; ++i) {
@@ -42,7 +42,7 @@ struct Quadrature_product {
         return arr;
     }();
 
-    constexpr static auto weights = []() {
+    constexpr static auto weights = []() -> auto {
         std::array<Scalar, n_points> arr{};
         size_t idx = 0;
         for (size_t i = 0; i < QuadratureX::n_points; ++i) {

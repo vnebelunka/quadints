@@ -5,10 +5,10 @@
 #include <random>
 #include <vector>
 
-#include "quadints/adaptive.hpp"
+#include "quadints/adaptive/adaptive.hpp"
+#include "quadints/adaptive/splitter_triangle.hpp"
 #include "quadints/interface.hpp"
-#include "quadints/quads_triangle.hpp"
-#include "quadints/splitter_triangle.hpp"
+#include "quadints/quadratures/quads_triangle.hpp"
 #include "triangle_utility.hpp"
 using namespace quadints;
 

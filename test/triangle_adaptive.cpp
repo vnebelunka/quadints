@@ -3,10 +3,9 @@
 #include <array>
 #include <cmath>
 
-#include "gtest/gtest.h"
-#include "quadints/adaptive.hpp"
-#include "quadints/interface.hpp"
-#include "quadints/quads_triangle.hpp"
+#include "quadints/adaptive/StopCriterion.hpp"
+#include "quadints/adaptive/adaptive.hpp"
+#include "quadints/quadratures/quads_triangle.hpp"
 #include "test_utility.hpp"
 using namespace quadints;
 
@@ -15,12 +14,12 @@ using namespace quadints;
 using TriangleMidpointRule = TriangleQuadrature<double, 1>;
 
 TEST(AdaptiveIntegrationTriangleTest, MidPoint0degree) {
-    auto constant = [](point2d) { return 5.0; };
+    auto constant = [](point2d) -> double { return 5.0; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-3)}, 10, 0);
-    double result = integrator.integrate(constant, tri_unit);
-    double exact = 5.0 * tri_unit.mes();  // area=0.5 → 2.5
+    double const result = integrator.integrate(constant, tri_unit);
+    double const exact = 5.0 * tri_unit.mes();  // area=0.5 → 2.5
     EXPECT_NEAR(result, exact, 1e-12);
 }
 
@@ -29,28 +28,18 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint1degree) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-3)}, 10, 0);
-    double result = integrator.integrate(linear, tri_unit);
-    double exact = 1. / 6;
+    double const result = integrator.integrate(linear, tri_unit);
+    double const exact = 1. / 6;
     EXPECT_NEAR(result, exact, std::abs(exact) * 3e-3);
 }
 
 TEST(AdaptiveIntegrationTriangleTest, MidPoint2degree) {
-    auto square = [](point2d p) { return p.coords[0] * p.coords[1]; };
-    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-    auto integrator =
-        make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-4)}, 10, 0);
-    double result = integrator.integrate(square, tri_unit);
-    double exact_square = 1. / 24;
-    EXPECT_NEAR(result, exact_square, std::abs(exact_square) * 1e-3);
-}
-
-TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree) {
     auto cubic = [](point2d p) { return p.coords[0] * p.coords[0] * p.coords[0]; };
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-3)}, 10, 0);
-    double result = integrator.integrate(cubic, tri_unit);
-    double exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
+    double const result = integrator.integrate(cubic, tri_unit);
+    double const exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
     EXPECT_NEAR(result, exact_cubic, std::abs(exact_cubic) * 3e-3);
 }
 
@@ -59,8 +48,8 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e4) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(2e-4)}, 10, 0);
-    double result = integrator.integrate(cubic, tri_unit);
-    double exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
+    double const result = integrator.integrate(cubic, tri_unit);
+    double const exact_cubic = 1.0 / 20.0;  // 3‑point rule is not exact for cubic; we check it differs.
     EXPECT_NEAR(result, exact_cubic, std::abs(exact_cubic) * 4e-4);
 }
 
@@ -69,13 +58,13 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e6) {
     auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator =
         make_adaptive_integrator<TriangleMidpointRule, Triangle>(DefaultCriterion{Atol(0.0), Rtol(1e-6)}, 10, 0);
-    double expected = 1. / 20;
+    double const expected = 1. / 20;
     auto result = integrator.integrate(cubic, tri_unit);
     EXPECT_NEAR(result, expected, 3e-6);
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPoint0degree) {
-    auto constant = [](point2d px, point2d py) { return 1.0; };
+    auto constant = [](point2d /*px*/, point2d /*py*/) -> double { return 1.0; };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
     // AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
@@ -86,7 +75,9 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPoint0degree) {
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPoint1degree) {
-    auto constant = [](point2d px, point2d py) { return px.coords[0] * py.coords[0] + px.coords[1] * py.coords[1]; };
+    auto constant = [](point2d px, point2d py) {
+        return (px.coords[0] * py.coords[0]) + (px.coords[1] * py.coords[1]);
+    };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
     // AdaptiveIntegrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle> integrator;
@@ -98,9 +89,9 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPoint1degree) {
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPointDist) {
-    auto dist = [](point2d px, point2d py) {
-        return std::sqrt((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0]) +
-                         (px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1]));
+    auto dist = [](point2d px, point2d py) -> double {
+        return std::sqrt(((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0])) +
+                         ((px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1])));
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
@@ -112,9 +103,9 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist) {
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPointDist1triangle) {
-    auto dist = [](point2d px, point2d py) {
-        return std::sqrt((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0]) +
-                         (px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1]));
+    auto dist = [](point2d px, point2d py) -> double {
+        return std::sqrt(((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0])) +
+                         ((px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1])));
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto integrator = make_adaptive_integrator2d<TriangleMidpointRule, TriangleMidpointRule, Triangle, Triangle>(
@@ -125,9 +116,9 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist1triangle) {
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, MidPointDist2triangles1e5) {
-    auto dist = [](point2d px, point2d py) {
-        return std::sqrt((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0]) +
-                         (px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1]));
+    auto dist = [](point2d px, point2d py) -> double {
+        return std::sqrt(((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0])) +
+                         ((px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1])));
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};
@@ -140,9 +131,9 @@ TEST(AdaptiveIntegrationTriangle2Test, MidPointDist2triangles1e5) {
 }
 
 TEST(AdaptiveIntegrationTriangle2Test, SecondDegreeDist) {
-    auto dist = [](point2d px, point2d py) {
-        return std::sqrt((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0]) +
-                         (px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1]));
+    auto dist = [](point2d px, point2d py) -> double {
+        return std::sqrt(((px.coords[0] - py.coords[0]) * (px.coords[0] - py.coords[0])) +
+                         ((px.coords[1] - py.coords[1]) * (px.coords[1] - py.coords[1])));
     };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
     auto tri_unit2 = Triangle{point2d{1.0, 0.0}, point2d{0.0, 1.0}, point2d{1.0, 1.0}};

@@ -5,7 +5,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "interface.hpp"
+#include "quadints/interface.hpp"
 
 namespace quadints {
 template <typename T, typename Scalar>
@@ -20,22 +20,22 @@ template <typename Scalar>
 struct barycentric_triangle {
     std::array<Scalar, 2> coords;
     constexpr barycentric_triangle(Scalar x, Scalar y) : coords{x, y} {}
-    constexpr barycentric_triangle(Scalar x, Scalar y, Scalar z) : coords{x, y} {
+    constexpr barycentric_triangle(Scalar x, Scalar y, Scalar /*z*/) : coords{x, y} {
         assert(std::abs(x + y + z - 1) < 1e-10);
     }
     constexpr barycentric_triangle() : coords{0, 0} {}
-    constexpr Scalar x() const { return coords[0]; }
-    constexpr Scalar y() const { return coords[1]; }
-    constexpr Scalar z() const { return 1 - coords[0] - coords[1]; }
+    [[nodiscard]] constexpr auto x() const -> Scalar { return coords[0]; }
+    [[nodiscard]] constexpr auto y() const -> Scalar { return coords[1]; }
+    [[nodiscard]] constexpr auto z() const -> Scalar { return 1 - coords[0] - coords[1]; }
 
     template <typename triangle_t>
         requires triangle<triangle_t, Scalar>
-    constexpr auto to_domain(const triangle_t& t) const {
+    [[nodiscard]] constexpr auto to_domain(const triangle_t& t) const {
         const auto& vertices = t.vertices();
         const auto& A = vertices[0];
         const auto& B = vertices[1];
         const auto& C = vertices[2];
-        typename triangle_t::point_type D = A * coords[0] + B * coords[1] + C * (1 - coords[0] - coords[1]);
+        typename triangle_t::point_type D = (A * coords[0]) + (B * coords[1]) + (C * (1 - coords[0] - coords[1]));
         return D;
     }
 };
@@ -45,26 +45,26 @@ constexpr auto to_domain(const triangle_t& t, const std::array<barycentric_trian
     const auto& A = vertices[0];
     const auto& B = vertices[1];
     const auto& C = vertices[2];
-    const auto CA = A + C * static_cast<Scalar>(-1);
-    const auto CB = B + C * static_cast<Scalar>(-1);
-    std::array<typename triangle_t::point_type, N_POINTS> result;
+    const auto CA = A + (C * static_cast<Scalar>(-1));
+    const auto CB = B + (C * static_cast<Scalar>(-1));
+    std::array<typename triangle_t::point_type, N_POINTS> result{};
     for (size_t i = 0; i < N_POINTS; ++i) {
-        result[i] = C + CA * coords[i].x() + CB * coords[i].y();
+        result[i] = C + (CA * coords[i].x()) + (CB * coords[i].y());
     }
     return result;
 }
 
-template <typename triangle_t, typename Scalar = triangle_t::point_type>
+template <typename triangle_t, typename Scalar>
 constexpr auto to_domain(const triangle_t& t, const std::vector<barycentric_triangle<Scalar>>& coords) {
     const auto& vertices = t.vertices();
     const auto& A = vertices[0];
     const auto& B = vertices[1];
     const auto& C = vertices[2];
-    const auto CA = A + C * static_cast<Scalar>(-1);
-    const auto CB = B + C * static_cast<Scalar>(-1);
+    const auto CA = A + (C * static_cast<Scalar>(-1));
+    const auto CB = B + (C * static_cast<Scalar>(-1));
     std::vector<typename triangle_t::point_type> result(coords.size());
     for (size_t i = 0; i < coords.size(); ++i) {
-        result[i] = C + CA * coords[i].x() + CB * coords[i].y();
+        result[i] = C + (CA * coords[i].x()) + (CB * coords[i].y());
     }
     return result;
 }
@@ -73,43 +73,43 @@ template <typename Scalar>
 struct barycentric_direction {
     std::array<Scalar, 2> dirs;
     constexpr barycentric_direction(Scalar dx, Scalar dy) : dirs{dx, dy} {}
-    constexpr barycentric_direction(Scalar dx, Scalar dy, Scalar dz) : dirs{dx, dy} {
+    constexpr barycentric_direction(Scalar dx, Scalar dy, Scalar /*dz*/) : dirs{dx, dy} {
         assert(std::abs(dx + dy + dz) < 1e-10);
     }
 };
 
 template <typename Scalar>
-constexpr barycentric_triangle<Scalar> operator+(const barycentric_triangle<Scalar>& c,
-                                                 const barycentric_direction<Scalar>& d) {
+constexpr auto operator+(const barycentric_triangle<Scalar>& c,
+                         const barycentric_direction<Scalar>& d) -> barycentric_triangle<Scalar> {
     return {c.coords[0] + d.dirs[0], c.coords[1] + d.dirs[1]};
 }
 template <typename Scalar>
-constexpr barycentric_triangle<Scalar> operator+(const barycentric_direction<Scalar>& d,
-                                                 const barycentric_triangle<Scalar>& c) {
+constexpr auto operator+(const barycentric_direction<Scalar>& d,
+                         const barycentric_triangle<Scalar>& c) -> barycentric_triangle<Scalar> {
     return c + d;
 }
 
 template <typename Scalar>
-constexpr barycentric_triangle<Scalar>& operator+=(barycentric_triangle<Scalar>& c,
-                                                   const barycentric_direction<Scalar>& d) {
+constexpr auto operator+=(barycentric_triangle<Scalar>& c,
+                          const barycentric_direction<Scalar>& d) -> barycentric_triangle<Scalar>& {
     c.coords[0] += d.dirs[0];
     c.coords[1] += d.dirs[1];
     return c;
 }
 
 template <typename Scalar>
-constexpr barycentric_direction<Scalar> operator-(const barycentric_triangle<Scalar>& c,
-                                                  const barycentric_triangle<Scalar>& d) {
+constexpr auto operator-(const barycentric_triangle<Scalar>& c,
+                         const barycentric_triangle<Scalar>& d) -> barycentric_direction<Scalar> {
     return {c.coords[0] - d.coords[0], c.coords[1] - d.coords[1]};
 }
 template <typename Scalar>
-constexpr barycentric_direction<Scalar> operator*(const barycentric_direction<Scalar>& c, Scalar s) {
+constexpr auto operator*(const barycentric_direction<Scalar>& c, Scalar s) -> barycentric_direction<Scalar> {
     return {c.dirs[0] * s, c.dirs[1] * s};
 }
 
 template <typename Scalar, unsigned int n_points>
 struct TriangleQuadrature {
-    static_assert("We have no quadrature of such dimension and order");
+    static_assert(true);
 };
 
 template <typename Scalar>
