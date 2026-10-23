@@ -166,8 +166,8 @@ struct TriangleRangeStatic {
             const bar_dir CA = A - C;
             const bar_dir CB = B - C;
             for (size_t i = 0; i < QuadRule::n_points; ++i) {
-                bar_points[triangle_counter * QuadRule::n_points + i] =
-                    C + CA * QuadRule::points[i].x() + CB * QuadRule::points[i].y();
+                auto quad_p = QuadRule::points[i];
+                bar_points[triangle_counter * QuadRule::n_points + i] = C + CA * quad_p.x() + CB * quad_p.y();
             }
             ++triangle_counter;
         }

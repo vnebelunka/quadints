@@ -20,13 +20,14 @@ template <typename Scalar>
 struct barycentric_triangle {
     std::array<Scalar, 2> coords;
     constexpr barycentric_triangle(Scalar x, Scalar y) : coords{x, y} {}
-    constexpr barycentric_triangle(Scalar x, Scalar y, Scalar /*z*/) : coords{x, y} {
+    constexpr barycentric_triangle(Scalar x, Scalar y, Scalar z) : coords{x, y} {
         assert(std::abs(x + y + z - 1) < 1e-10);
     }
     constexpr barycentric_triangle() : coords{0, 0} {}
-    [[nodiscard]] constexpr auto x() const -> Scalar { return coords[0]; }
-    [[nodiscard]] constexpr auto y() const -> Scalar { return coords[1]; }
-    [[nodiscard]] constexpr auto z() const -> Scalar { return 1 - coords[0] - coords[1]; }
+
+    [[nodiscard]] constexpr auto x() const -> Scalar { return std::get<0>(coords); }
+    [[nodiscard]] constexpr auto y() const -> Scalar { return std::get<1>(coords); }
+    [[nodiscard]] constexpr auto z() const -> Scalar { return 1 - std::get<0>(coords) - std::get<1>(coords); }
 
     template <typename triangle_t>
         requires triangle<triangle_t, Scalar>
@@ -35,11 +36,13 @@ struct barycentric_triangle {
         const auto& A = vertices[0];
         const auto& B = vertices[1];
         const auto& C = vertices[2];
-        typename triangle_t::point_type D = (A * coords[0]) + (B * coords[1]) + (C * (1 - coords[0] - coords[1]));
+        typename triangle_t::point_type D = (A * std::get<0>(coords)) + (B * std::get<1>(coords)) +
+                                            (C * (1 - std::get<0>(coords) - std::get<1>(coords)));
         return D;
     }
 };
-template <size_t N_POINTS, typename triangle_t, typename Scalar = triangle_t::point_type>
+
+template <size_t N_POINTS, typename triangle_t, typename Scalar = typename triangle_t::point_type>
 constexpr auto to_domain(const triangle_t& t, const std::array<barycentric_triangle<Scalar>, N_POINTS>& coords) {
     const auto& vertices = t.vertices();
     const auto& A = vertices[0];
@@ -73,38 +76,40 @@ template <typename Scalar>
 struct barycentric_direction {
     std::array<Scalar, 2> dirs;
     constexpr barycentric_direction(Scalar dx, Scalar dy) : dirs{dx, dy} {}
-    constexpr barycentric_direction(Scalar dx, Scalar dy, Scalar /*dz*/) : dirs{dx, dy} {
+    constexpr barycentric_direction(Scalar dx, Scalar dy, Scalar dz) : dirs{dx, dy} {
         assert(std::abs(dx + dy + dz) < 1e-10);
     }
 };
 
 template <typename Scalar>
-constexpr auto operator+(const barycentric_triangle<Scalar>& c,
-                         const barycentric_direction<Scalar>& d) -> barycentric_triangle<Scalar> {
-    return {c.coords[0] + d.dirs[0], c.coords[1] + d.dirs[1]};
+constexpr auto operator+(const barycentric_triangle<Scalar>& c, const barycentric_direction<Scalar>& d)
+    -> barycentric_triangle<Scalar> {
+    return {std::get<0>(c.coords) + std::get<0>(d.dirs), std::get<1>(c.coords) + std::get<1>(d.dirs)};
 }
+
 template <typename Scalar>
-constexpr auto operator+(const barycentric_direction<Scalar>& d,
-                         const barycentric_triangle<Scalar>& c) -> barycentric_triangle<Scalar> {
+constexpr auto operator+(const barycentric_direction<Scalar>& d, const barycentric_triangle<Scalar>& c)
+    -> barycentric_triangle<Scalar> {
     return c + d;
 }
 
 template <typename Scalar>
-constexpr auto operator+=(barycentric_triangle<Scalar>& c,
-                          const barycentric_direction<Scalar>& d) -> barycentric_triangle<Scalar>& {
-    c.coords[0] += d.dirs[0];
-    c.coords[1] += d.dirs[1];
+constexpr auto operator+=(barycentric_triangle<Scalar>& c, const barycentric_direction<Scalar>& d)
+    -> barycentric_triangle<Scalar>& {
+    std::get<0>(c.coords) += std::get<0>(d.dirs);
+    std::get<1>(c.coords) += std::get<1>(d.dirs);
     return c;
 }
 
 template <typename Scalar>
-constexpr auto operator-(const barycentric_triangle<Scalar>& c,
-                         const barycentric_triangle<Scalar>& d) -> barycentric_direction<Scalar> {
-    return {c.coords[0] - d.coords[0], c.coords[1] - d.coords[1]};
+constexpr auto operator-(const barycentric_triangle<Scalar>& c, const barycentric_triangle<Scalar>& d)
+    -> barycentric_direction<Scalar> {
+    return {std::get<0>(c.coords) - std::get<0>(d.coords), std::get<1>(c.coords) - std::get<1>(d.coords)};
 }
+
 template <typename Scalar>
 constexpr auto operator*(const barycentric_direction<Scalar>& c, Scalar s) -> barycentric_direction<Scalar> {
-    return {c.dirs[0] * s, c.dirs[1] * s};
+    return {std::get<0>(c.dirs) * s, std::get<1>(c.dirs) * s};
 }
 
 template <typename Scalar, unsigned int n_points>

@@ -22,8 +22,8 @@ concept has_magnitude = has_norm<T, scalar> || has_abs<T, scalar>;
 template <typename scalar, typename T>
 concept banach_vec = requires(scalar alpha, T t, T u) {
     t + u;
-    t* alpha;
-    alpha* t;
+    t * alpha;
+    alpha * t;
     t += u;
     t *= alpha;
     requires has_magnitude<T, scalar>;
@@ -44,7 +44,8 @@ concept quadrature_rule = requires() {
     T::weights;
     requires std::ranges::contiguous_range<decltype(T::weights)>;
     { T::weights[0] } -> std::convertible_to<scalar>;
-    requires T::n_points == T::points.size() && T::n_points == T::weights.size();
+    requires T::n_points == std::tuple_size_v<decltype(T::points)>&& T::n_points ==
+                 std::tuple_size_v<decltype(T::weights)>;
 };
 
 template <typename F, typename arg, typename Scalar>
