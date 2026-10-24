@@ -4,12 +4,12 @@
 #include <complex>
 #include <vector>
 
-#include "quadints/integrate/integrate_collect.hpp"
 #include "quadints/interface.hpp"
 #include "quadints/quadratures/collected_quadrature.hpp"
 #include "quadints/quadratures/quads_triangle.hpp"
 #include "testing_funcs.hpp"
 #include "triangle_utility.hpp"
+
 using namespace quadints;
 
 // --- Алиасы квадратурных правил ---
@@ -18,83 +18,85 @@ using Quad3 = TriangleQuadrature<double, 3>;
 using Quad7 = TriangleQuadrature<double, 7>;
 
 // ============================================================================
-// 1D Бенчмарк: Одномерное интегрирование
+// 1D Бенчмарк: Одномерное интегрирование (Static Depth)
 // ============================================================================
 
-template <typename QuadRule, typename Integrand>
+template <typename QuadRule, typename Integrand, size_t depth>
 static void BM_triangle_1d(benchmark::State& state) {
     constexpr size_t n = 10'000;
     static const std::vector<Triangle> triangles = generate_random_triangles(n);
-    size_t level = state.range(0);
-    auto quad = CollectedQuadratureDynamic<QuadRule>(level);
-    size_t evals_per_triangle = quad.points().size();
-    size_t i = 0;
-    const auto& points = quad.points();
-    const auto& weights = quad.weights();
 
+    using quad = CollectedQuadratureStatic<QuadRule, depth, double>;
+    constexpr size_t evals_per_triangle = quad::n_points;
+
+    size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_collect(Integrand{}, triangles[i], points, weights));
+        benchmark::DoNotOptimize(quadints::detail::integrate_collect<quad>(Integrand{}, triangles[i]));
         i = (i + 1) % n;
     }
 
-    // Отчет о полном числе вычислений подинтегральной функции в секунду
+    // Полное количество вычислений функции в секунду
     state.SetItemsProcessed(state.iterations() * evals_per_triangle);
 }
 
 // ============================================================================
-// 2D Бенчмарк: Двумерное интегрирование (по парам треугольников)
+// 2D Бенчмарк: Двумерное интегрирование по парам треугольников (Static Depth)
 // ============================================================================
 
-template <typename QuadRule, typename Integrand>
-static void BM_dynamic_quadrature_xy(benchmark::State& state) {
+template <typename QuadRule, typename Integrand, size_t depth>
+static void BM_static_quadrature_xy(benchmark::State& state) {
     constexpr size_t n = 50;
     static const std::vector<Triangle> triangles = generate_random_triangles(n);
-    size_t level = state.range(0);
-    auto integrator = CollectedQuadratureDynamic<QuadRule>(level);
 
-    const auto& points = integrator.points();
-    const auto& weights = integrator.weights();
+    using quad = CollectedQuadratureStatic<QuadRule, depth, double>;
 
     for (auto _ : state) {
         for (size_t i = 0; i < n; ++i) {
             for (size_t j = 0; j < n; ++j) {
-                benchmark::DoNotOptimize(detail::integrate2_collect(Integrand{}, triangles[i], triangles[j], points,
-                                                                    weights, points, weights));
+                benchmark::DoNotOptimize(
+                    detail::integrate2_collect<quad, quad>(Integrand{}, triangles[i], triangles[j]));
             }
         }
     }
 
-    // Время в секундах/наносекундах на одну пару элементов (50 * 50 = 2500 элементов)
+    // Время на обработку одной пары элементов
     state.counters["time_per_elem"] =
         benchmark::Counter(n * n, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 
-    // Полное число вычислений функции за одну итерацию: N_pairs * (N_pts * N_pts)
-    size_t total_evals = (n * n) * (points.size() * points.size());
-    state.SetItemsProcessed(state.iterations() * total_evals);
+    // Полное число вычислений подинтегральной функции: N_pairs * (N_pts * N_pts)
+    constexpr size_t total_evals_per_iter = (n * n) * (quad::n_points * quad::n_points);
+    state.SetItemsProcessed(state.iterations() * total_evals_per_iter);
 }
 
 // ============================================================================
-// Автоматическая регистрация бенчмарков
+// Автоматическая регистрация статически типизированных бенчмарков
 // ============================================================================
 
-// --- 1D регистрация (depth: 1..4) ---
-#define REGISTER_BENCH_1D(QuadRule, IntegrandName, IntegrandType) \
-    BENCHMARK_TEMPLATE(BM_triangle_1d, QuadRule, IntegrandType)   \
-        ->DenseRange(1, 4, 1)                                     \
-        ->ArgName("depth")                                        \
-        ->Name("BM_1D/" #IntegrandName "/" #QuadRule)
+// --- 1D Макросы (depth: 1..4) ---
+#define REGISTER_BENCH_1D_DEPTH(QuadRule, IntegrandName, IntegrandType, Depth) \
+    BENCHMARK_TEMPLATE(BM_triangle_1d, QuadRule, IntegrandType, Depth)         \
+        ->Name("BM_1D/" #IntegrandName "/" #QuadRule "/depth:" #Depth)
+
+#define REGISTER_BENCH_1D(QuadRule, IntegrandName, IntegrandType)       \
+    REGISTER_BENCH_1D_DEPTH(QuadRule, IntegrandName, IntegrandType, 1); \
+    REGISTER_BENCH_1D_DEPTH(QuadRule, IntegrandName, IntegrandType, 2); \
+    REGISTER_BENCH_1D_DEPTH(QuadRule, IntegrandName, IntegrandType, 3); \
+    REGISTER_BENCH_1D_DEPTH(QuadRule, IntegrandName, IntegrandType, 4)
 
 #define REGISTER_ALL_1D(Name, Type)       \
     REGISTER_BENCH_1D(Quad1, Name, Type); \
     REGISTER_BENCH_1D(Quad3, Name, Type); \
     REGISTER_BENCH_1D(Quad7, Name, Type);
 
-// --- 2D регистрация (depth: 1..3) ---
-#define REGISTER_BENCH_2D(QuadRule, IntegrandName, IntegrandType)         \
-    BENCHMARK_TEMPLATE(BM_dynamic_quadrature_xy, QuadRule, IntegrandType) \
-        ->DenseRange(1, 3, 1)                                             \
-        ->ArgName("depth")                                                \
-        ->Name("BM_2D/" #IntegrandName "/" #QuadRule)
+// --- 2D Макросы (depth: 1..3) ---
+#define REGISTER_BENCH_2D_DEPTH(QuadRule, IntegrandName, IntegrandType, Depth)  \
+    BENCHMARK_TEMPLATE(BM_static_quadrature_xy, QuadRule, IntegrandType, Depth) \
+        ->Name("BM_2D/" #IntegrandName "/" #QuadRule "/depth:" #Depth)
+
+#define REGISTER_BENCH_2D(QuadRule, IntegrandName, IntegrandType)       \
+    REGISTER_BENCH_2D_DEPTH(QuadRule, IntegrandName, IntegrandType, 1); \
+    REGISTER_BENCH_2D_DEPTH(QuadRule, IntegrandName, IntegrandType, 2); \
+    REGISTER_BENCH_2D_DEPTH(QuadRule, IntegrandName, IntegrandType, 3)
 
 #define REGISTER_ALL_2D(Name, Type)       \
     REGISTER_BENCH_2D(Quad1, Name, Type); \
