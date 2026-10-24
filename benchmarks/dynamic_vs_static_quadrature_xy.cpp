@@ -14,6 +14,7 @@
 using namespace quadints;
 
 namespace {
+
 template <typename QuadRule, typename Integrand>
 void BM_dynamic_quadrature_xy(benchmark::State& state) {
     size_t n = 50;

@@ -19,6 +19,9 @@ struct constant {
 struct cos10 {
     double w = 10;
     double operator()(const point2d& point) const { return cos(w * (point.coords[0] + point.coords[1])); }
+    double operator()(const point2d& pointx, const point2d& pointy) const {
+        return cos(w * (pointx.coords[0] + pointy.coords[1]));
+    }
 };
 
 struct expir {
