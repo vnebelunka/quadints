@@ -4,8 +4,8 @@
 #include <functional>
 #include <ranges>
 
+#include "quadints/common/common.hpp"
 #include "quadints/concepts.hpp"
-
 namespace quadints::detail {
 
 template <typename QuadRule, typename Domain, typename Func, typename Scalar = decltype(*(QuadRule::weights.begin()))>
@@ -49,6 +49,27 @@ constexpr auto integrate2_iter(Func&& f, const Domain1& cell1, const Domain2& ce
     }
     return res * cell1.mes() * cell2.mes();
 };
+
+template <typename Domain, typename Func, typename QuadRulePointType, typename Scalar>
+constexpr auto integrate_iter(Func&& f, const Domain& cell, const std::vector<QuadRulePointType>& quad_rule_points,
+                              const std::vector<Scalar>& quad_rule_weights) -> return_type<Func, Domain> {
+    using return_type = return_type<Func, Domain>;
+    return_type res{};
+    auto points_it = std::ranges::begin(quad_rule_points);
+    auto weights_it = std::ranges::begin(quad_rule_weights);
+    const auto points_end = std::ranges::end(quad_rule_points);
+    for (; points_it != points_end; ++points_it, ++weights_it) {
+        const auto& ref_point = *points_it;
+        const auto weight = static_cast<Scalar>(*weights_it);  // convert to Scalar
+        const auto point = ref_point.to_domain(cell);
+        res += std::invoke(f, point) * weight;
+    }
+    return res * cell.mes();
+}
+template <typename Domain, typename Func, typename RuntimeQuadRule, typename Scalar = decltype(Domain().mes())>
+constexpr auto integrate_iter(Func&& f, const Domain& cell, const RuntimeQuadRule& quad) {
+    return integrate_iter(std::forward<Func>(f), cell, quad.points(), quad.weights());
+}
 
 }  // namespace quadints::detail
 

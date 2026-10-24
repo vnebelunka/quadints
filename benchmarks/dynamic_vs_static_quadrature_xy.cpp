@@ -9,28 +9,11 @@
 #include "quadints/adaptive/splitter_triangle.hpp"
 #include "quadints/interface.hpp"
 #include "quadints/quadratures/quads_triangle.hpp"
+#include "testing_funcs.hpp"
 #include "triangle_utility.hpp"
 using namespace quadints;
 
 namespace {
-template <size_t p>
-struct xpyp {
-    auto operator()(const point2d& pointx, const point2d& pointy) const -> double {
-        return std::pow(pointx.coords[0] + pointy.coords[1], p);
-    }
-};
-
-struct constant {
-    auto operator()(const point2d& pointx, const point2d& pointy) const -> double { return 1.0; }
-};
-
-struct expir {
-    auto operator()(const point2d& pointx, const point2d& pointy) -> std::complex<double> {
-        auto r = norm(pointx - pointy);
-        return std::exp(r * std::complex<double>{0., 1.});
-    }
-};
-
 template <typename QuadRule, typename Integrand>
 void BM_dynamic_quadrature_xy(benchmark::State& state) {
     size_t n = 50;

@@ -8,25 +8,9 @@
 #include "quadints/adaptive/adaptive.hpp"
 #include "quadints/interface.hpp"
 #include "quadints/quadratures/quads_triangle.hpp"
+#include "testing_funcs.hpp"
 #include "triangle_utility.hpp"
 using namespace quadints;
-
-struct norm_func {
-    double operator()(const point2d& pointx, const point2d& pointy) const {
-        return std::sqrt(std::pow(pointx.coords[0] - pointy.coords[0], 2) +
-                         std::pow(pointx.coords[1] - pointy.coords[1], 2));
-    }
-};
-
-struct constant_func {
-    double operator()(const point2d& pointx, const point2d& pointy) const { return 1.0; }
-};
-
-struct expir_func {
-    auto operator()(const point2d& pointx, const point2d& pointy) -> std::complex<double> {
-        return std::exp(norm(pointx - pointy) * std::complex<double>{0., 1.});
-    }
-};
 
 namespace {
 

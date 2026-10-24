@@ -1,6 +1,8 @@
 #ifndef QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
 #define QUADINTS_BENCHMARKS_TRIANGLE_UTILITY_HPP
 
+#include <random>
+
 struct point2d {
     std::array<double, 2> coords;
     point2d operator+(const point2d& other) const { return {coords[0] + other.coords[0], coords[1] + other.coords[1]}; }

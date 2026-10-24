@@ -1,90 +1,57 @@
 #include <benchmark/benchmark.h>
-#include <gtest/gtest.h>
 
-#include <random>
+#include <cmath>
+#include <complex>
 #include <vector>
 
 #include "quadints/interface.hpp"
+#include "quadints/quadratures/collected_quadrature.hpp"
 #include "quadints/quadratures/quads_triangle.hpp"
+#include "testing_funcs.hpp"
 #include "triangle_utility.hpp"
 
 using namespace quadints;
 
-static const Triangle tri_unit{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
-// The integrand used in the test
-static auto quad_xy = [](point2d p) { return std::exp(p.coords[0] * p.coords[1]); };
+// --- Type Aliases to prevent macro comma errors ---
+using Quad1 = TriangleQuadrature<double, 1>;
+using Quad3 = TriangleQuadrature<double, 3>;
+using Quad7 = TriangleQuadrature<double, 7>;
 
-template <typename QuadRule>
-static void BM_triangle_vec_iter(benchmark::State& state) {
-    size_t n = 10000;
-    auto tvec = generate_random_triangles(n);
+template <typename QuadRule, typename Integrand>
+static void BM_triangle(benchmark::State& state) {
+    constexpr size_t n = 10'000;
+    static const std::vector<Triangle> triangles = generate_random_triangles(n);
+
+    size_t level = state.range(0);
+    auto quad = CollectedQuadratureDynamic<QuadRule>(level);
+    size_t evals_per_triangle = quad.points().size();
     size_t i = 0;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_iter<QuadRule>(quad_xy, tvec[i]));
-        i += 1;
-        i %= n;
+        benchmark::DoNotOptimize(quadints::detail::integrate_iter(Integrand{}, triangles[i], quad));
+        i = (i + 1) % n;
     }
+
+    // Reports total integrand evaluations per second in benchmark output
+    state.SetItemsProcessed(state.iterations() * evals_per_triangle);
 }
 
-template <typename QuadRule>
-static void BM_triangle_vec_collect(benchmark::State& state) {
-    size_t n = 10000;
-    auto tvec = generate_random_triangles(n);
-    size_t i = 0;
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_collect<QuadRule>(quad_xy, tvec[i]));
-        i += 1;
-        i %= n;
-    }
-}
+// --- Helper Macro for Clean Global Registration ---
+#define REGISTER_BENCH(QuadRule, IntegrandName, IntegrandType) \
+    BENCHMARK_TEMPLATE(BM_triangle, QuadRule, IntegrandType)   \
+        ->DenseRange(1, 4, 1)                                  \
+        ->ArgName("depth")                                     \
+        ->Name("BM_triangle/" #IntegrandName "/" #QuadRule)
 
-template <typename QuadRule>
-static void BM_triangle_uni_collect(benchmark::State& state) {
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_collect<QuadRule>(quad_xy, tri_unit));
-    }
-}
-template <typename QuadRule>
-static void BM_triangle_uni_iter(benchmark::State& state) {
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_iter<QuadRule>(quad_xy, tri_unit));
-    }
-}
+// Register all combinations across Order 1, 3, 7 and Depth 1..4
+#define REGISTER_ALL_ORDERS(Name, Type) \
+    REGISTER_BENCH(Quad1, Name, Type);  \
+    REGISTER_BENCH(Quad3, Name, Type);  \
+    REGISTER_BENCH(Quad7, Name, Type);
 
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 1>>);
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 3>>);
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 7>>);
-BENCHMARK(BM_triangle_vec_collect<TriangleQuadrature<double, 1>>);
-BENCHMARK(BM_triangle_vec_collect<TriangleQuadrature<double, 3>>);
-BENCHMARK(BM_triangle_vec_collect<TriangleQuadrature<double, 7>>);
-BENCHMARK(BM_triangle_uni_collect<TriangleQuadrature<double, 1>>);
-BENCHMARK(BM_triangle_uni_collect<TriangleQuadrature<double, 3>>);
-BENCHMARK(BM_triangle_uni_collect<TriangleQuadrature<double, 7>>);
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 1>>);
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 3>>);
-BENCHMARK(BM_triangle_vec_iter<TriangleQuadrature<double, 7>>);
+REGISTER_ALL_ORDERS(xpyp_1, xpyp<1>);
+REGISTER_ALL_ORDERS(xpyp_2, xpyp<2>);
+REGISTER_ALL_ORDERS(xpyp_2, xpyp<4>);
+REGISTER_ALL_ORDERS(cos10, cos10);
+REGISTER_ALL_ORDERS(expir, expir);
 
-constexpr size_t N = 128;
-
-template <typename Scalar>
-consteval std::array<Scalar, N> fill_array(Scalar val) {
-    std::array<Scalar, N> res;
-    res.fill(val);
-    return res;
-}
-
-template <typename Scalar>
-struct LongQuadratureEmul {
-    static constexpr size_t n_points = N;
-    using point_type = barycentric_triangle<Scalar>;
-    static constexpr std::array<point_type, n_points> points = fill_array(point_type{0.5, 0.5});
-    static constexpr std::array<Scalar, n_points> weights = fill_array(1.);
-};
-
-BENCHMARK(BM_triangle_vec_iter<LongQuadratureEmul<double>>);
-BENCHMARK(BM_triangle_vec_iter<LongQuadratureEmul<double>>);
-BENCHMARK(BM_triangle_vec_iter<LongQuadratureEmul<double>>);
-BENCHMARK(BM_triangle_vec_collect<LongQuadratureEmul<double>>);
-BENCHMARK(BM_triangle_vec_collect<LongQuadratureEmul<double>>);
-BENCHMARK(BM_triangle_vec_collect<LongQuadratureEmul<double>>);
 BENCHMARK_MAIN();
