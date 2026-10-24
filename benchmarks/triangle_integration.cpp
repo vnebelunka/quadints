@@ -105,7 +105,6 @@ static void BM_dynamic_quadrature_xy(benchmark::State& state) {
 // ============================================================================
 
 // 1D Бенчмарки
-REGISTER_ALL_1D(constant, constant);
 REGISTER_ALL_1D(xpyp_1, xpyp<1>);
 REGISTER_ALL_1D(xpyp_2, xpyp<2>);
 REGISTER_ALL_1D(xpyp_4, xpyp<4>);
@@ -113,7 +112,6 @@ REGISTER_ALL_1D(cos10, cos10);
 REGISTER_ALL_1D(expir, expir);
 
 // 2D Бенчмарки
-REGISTER_ALL_2D(constant, constant);
 REGISTER_ALL_2D(xpyp_1, xpyp<1>);
 REGISTER_ALL_2D(xpyp_2, xpyp<2>);
 REGISTER_ALL_2D(xpyp_4, xpyp<4>);
