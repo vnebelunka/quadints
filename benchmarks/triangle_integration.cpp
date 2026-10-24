@@ -4,6 +4,7 @@
 #include <complex>
 #include <vector>
 
+#include "quadints/integrate/integrate_collect.hpp"
 #include "quadints/interface.hpp"
 #include "quadints/quadratures/collected_quadrature.hpp"
 #include "quadints/quadratures/quads_triangle.hpp"
@@ -32,7 +33,7 @@ static void BM_triangle_1d(benchmark::State& state) {
     const auto& weights = quad.weights();
 
     for (auto _ : state) {
-        benchmark::DoNotOptimize(quadints::detail::integrate_iter(Integrand{}, triangles[i], points, weights));
+        benchmark::DoNotOptimize(quadints::detail::integrate_collect(Integrand{}, triangles[i], points, weights));
         i = (i + 1) % n;
     }
 
@@ -57,8 +58,8 @@ static void BM_dynamic_quadrature_xy(benchmark::State& state) {
     for (auto _ : state) {
         for (size_t i = 0; i < n; ++i) {
             for (size_t j = 0; j < n; ++j) {
-                benchmark::DoNotOptimize(
-                    detail::integrate2_iter(Integrand{}, triangles[i], triangles[j], points, weights, points, weights));
+                benchmark::DoNotOptimize(detail::integrate2_collect(Integrand{}, triangles[i], triangles[j], points,
+                                                                    weights, points, weights));
             }
         }
     }
