@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <benchmark/utils.h>
 
 #include <cmath>
 #include <complex>
@@ -33,6 +34,7 @@ static void BM_triangle_1d(benchmark::State& state) {
     for (auto _ : state) {
         benchmark::DoNotOptimize(quadints::detail::integrate_collect<quad>(Integrand{}, triangles[i]));
         i = (i + 1) % n;
+        benchmark::ClobberMemory();
     }
 
     // Полное количество вычислений функции в секунду
@@ -57,6 +59,7 @@ static void BM_static_quadrature_xy(benchmark::State& state) {
                     detail::integrate2_collect<quad, quad>(Integrand{}, triangles[i], triangles[j]));
             }
         }
+        benchmark::ClobberMemory();
     }
 
     // Время на обработку одной пары элементов
