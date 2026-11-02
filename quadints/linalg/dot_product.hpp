@@ -9,7 +9,7 @@
 template <size_t N, typename ReturnType, typename ScalarType>
 inline ReturnType dot_product_fallback(const std::array<ReturnType, N>& func_arr,
                                        const std::array<ScalarType, N>& weights) {
-    ReturnType res;
+    ReturnType res{};
     for (size_t i = 0; i < N; ++i) {
         res += func_arr[i] * weights[i];
     }
