@@ -27,7 +27,9 @@ concept has_batch_func = requires(Func&& f, const std::array<DomainPoint, N>& pt
 template <typename Func, typename DomainPointX, typename DomainPointY, std::size_t N>
 concept has_batch_func2 =
     requires(Func&& f, const std::array<DomainPointX, N>& ptsX, const std::array<DomainPointY, N>& ptsY) {
-        { f(ptsX, ptsY) } -> std::convertible_to<std::array<std::invoke_result_t<Func, DomainPointX, DomainPointY>, N>>;
+        {
+            f(ptsX, ptsY)
+        } -> std::convertible_to<std::array<std::invoke_result_t<Func, DomainPointX, DomainPointY>, N * N>>;
     };
 
 }  // namespace quadints
