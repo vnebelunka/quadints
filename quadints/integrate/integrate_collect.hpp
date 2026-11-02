@@ -5,6 +5,8 @@
 
 #include "quadints/common/common.hpp"
 #include "quadints/common/to_domain.hpp"
+#include "quadints/linalg/dot_product.hpp"
+#include "quadints/linalg/quadratic_form.hpp"
 
 namespace quadints::detail {
 template <typename QuadRule, typename Domain, typename Func, typename Scalar = std::decay_t<decltype(Domain().mes())>>
@@ -21,9 +23,7 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell) -> return_type<Fu
             func_arr[i] = std::invoke(f, domain_points[i]);
         }
     }
-    for (size_t i = 0; i < QuadRule::n_points; ++i) {
-        res += func_arr[i] * QuadRule::weights[i];
-    }
+    res = linalg::dot_product(func_arr, QuadRule::weights);
     return res * cell.mes();
 }
 
@@ -46,8 +46,8 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector
 template <typename Domain, typename Func, typename QuadRulePointType, typename BufferT,
           typename Scalar = decltype(Domain().mes())>
 constexpr auto integrate_collect(Func&& f, const Domain& cell, const std::vector<QuadRulePointType>& quad_rule_points,
-                                 const std::vector<Scalar>& quad_rule_weights,
-                                 BufferT& buff) -> return_type<Func, Domain> {
+                                 const std::vector<Scalar>& quad_rule_weights, BufferT& buff)
+    -> return_type<Func, Domain> {
     using return_type = return_type<Func, Domain>;
     return_type res{};
     auto domain_points = get_domain_points(cell, quad_rule_points);
@@ -91,14 +91,7 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
             }
         }
     }
-    for (size_t index_y = 0; index_y < QuadRule2::n_points; ++index_y) {
-        return_type resj = 0;
-        Scalar wj = QuadRule2::weights[index_y];
-        for (size_t index_x = 0; index_x < QuadRule1::n_points; ++index_x) {
-            resj += func_arr[(index_y * QuadRule1::n_points) + index_x] * QuadRule1::weights[index_x];
-        }
-        res += resj * wj;
-    }
+    res = linalg::quadratic_form<QuadRule1, QuadRule2>(func_arr);
     return res * cell1.mes() * cell2.mes();
 };
 

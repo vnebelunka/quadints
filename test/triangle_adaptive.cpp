@@ -63,6 +63,16 @@ TEST(AdaptiveIntegrationTriangleTest, MidPoint3degree1e6) {
     EXPECT_NEAR(result, expected, 3e-6);
 }
 
+TEST(AdaptiveIntegrationTriangleTest, complex_exp) {
+    auto exp = [](point2d p) { return std::exp(std::complex<double>(0., 1.) * (p.coords[0] + p.coords[1])); };
+    auto tri_unit = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+    auto integrator = make_adaptive_integrator<TriangleQuadrature<double, 7>, Triangle>(
+        DefaultCriterion{Atol(0.0), Rtol(1e-7)}, 13, 0);
+    std::complex<double> const expected = std::complex(std::cos(1) + std::sin(1) - 1, std::sin(1) - std::cos(1));
+    auto result = integrator.integrate(exp, tri_unit);
+    EXPECT_LE(std::abs(result - expected), 1e-6);
+}
+
 TEST(AdaptiveIntegrationTriangle2Test, MidPoint0degree) {
     auto constant = [](point2d /*px*/, point2d /*py*/) -> double { return 1.0; };
     auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
@@ -143,4 +153,100 @@ TEST(AdaptiveIntegrationTriangle2Test, SecondDegreeDist) {
     auto result = integrator.integrate(dist, tri_unit1, tri_unit2);
     auto expected = 0.157129;
     EXPECT_NEAR(result, expected, 3e-4 * std::abs(expected));
+}
+
+TEST(AdaptiveIntegrationTriangle2Test, complex_square) {
+    using std::complex;
+    auto func = [](const point2d& px, const point2d& py) {
+        complex<double> z(px.coords[0], px.coords[1]);
+        complex<double> w(py.coords[0], py.coords[1]);
+        return (z - w) * (z - w);
+    };
+    auto expected = complex<double>(0, -1. / 36);
+    {
+        using quad = TriangleQuadrature<double, 3>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result3 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result3.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result3.imag(), expected.imag(), 2e-4);
+    }
+    {
+        using quad = TriangleQuadrature<double, 1>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result3 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result3.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result3.imag(), expected.imag(), 2e-4);
+    }
+    {
+        using quad = TriangleQuadrature<double, 7>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result3 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result3.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result3.imag(), expected.imag(), 2e-4);
+    }
+}
+
+TEST(AdaptiveIntegrationTriangle2Test, complex_exp) {
+    using std::complex;
+    using namespace std::literals::complex_literals;
+    auto func = [](const point2d& px, const point2d& py) {
+        complex<double> z(px.coords[0], px.coords[1]);
+        complex<double> w(py.coords[0], py.coords[1]);
+        return std::exp(z + w);
+    };
+    auto expected = std::pow((1.0 + 1.0i) / 2. * std::exp(1.0) - 1.0i - (1.0 - 1.0i) / 2. * std::exp(1.0i), 2);
+    {
+        using quad = TriangleQuadrature<double, 3>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result3 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result3.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result3.imag(), expected.imag(), 2e-4);
+    }
+    {
+        using quad = TriangleQuadrature<double, 1>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result1 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result1.real(), expected.real(), 1e-3);
+        EXPECT_NEAR(result1.imag(), expected.imag(), 1e-3);
+    }
+    {
+        using quad = TriangleQuadrature<double, 7>;
+        auto integrator =
+            make_adaptive_integrator2d<quad, quad, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-4)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result7 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result7.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result7.imag(), expected.imag(), 2e-4);
+    }
+}
+
+TEST(AdaptiveIntegrationTriangle2Test, complex_exp_mixed_quad) {
+    using std::complex;
+    using namespace std::literals::complex_literals;
+    auto func = [](const point2d& px, const point2d& py) {
+        complex<double> z(px.coords[0], px.coords[1]);
+        complex<double> w(py.coords[0], py.coords[1]);
+        return std::exp(z + w);
+    };
+    auto expected = std::pow((1.0 + 1.0i) / 2. * std::exp(1.0) - 1.0i - (1.0 - 1.0i) / 2. * std::exp(1.0i), 2);
+    {
+        using quad1 = TriangleQuadrature<double, 3>;
+        using quad2 = TriangleQuadrature<double, 7>;
+        auto integrator =
+            make_adaptive_integrator2d<quad1, quad2, Triangle, Triangle>(DefaultCriterion(Atol(0.), Rtol(1e-5)), 10, 0);
+        auto tri_unit1 = Triangle{point2d{0.0, 0.0}, point2d{1.0, 0.0}, point2d{0.0, 1.0}};
+        auto result3 = integrator.integrate(func, tri_unit1, tri_unit1);
+        EXPECT_NEAR(result3.real(), expected.real(), 2e-4);
+        EXPECT_NEAR(result3.imag(), expected.imag(), 2e-4);
+    }
 }
