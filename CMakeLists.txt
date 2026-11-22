@@ -20,28 +20,25 @@ target_include_directories(integration_lib INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
-# 2. Определяем флаг компиляции под систему
 if(MSVC)
-    set(AVX512_FLAG "/arch:AVX512")
+  set(AVX512_FLAG "/arch:AVX512")
 else()
-    set(AVX512_FLAG "-mavx512f")
+  set(AVX512_FLAG "-mavx512f")
 endif()
 
 if(lto_supported)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
-    message(STATUS "LTO not supported, building without it: ${lto_error}")
+  message(STATUS "LTO not supported, building without it: ${lto_error}")
 endif()
 
-# 3. Проверяем, поддерживается ли флаг компилятором
 check_cxx_compiler_flag("${AVX512_FLAG}" COMPILER_SUPPORTS_AVX512)
 
-# 4. Проверяем, может ли текущий процессор и ОС выполнить инструкцию AVX-512
 if(COMPILER_SUPPORTS_AVX512)
-    set(CMAKE_REQUIRED_FLAGS_SAVE ${CMAKE_REQUIRED_FLAGS})
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${AVX512_FLAG}")
+  set(CMAKE_REQUIRED_FLAGS_SAVE ${CMAKE_REQUIRED_FLAGS})
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${AVX512_FLAG}")
 
-    check_cxx_source_runs("
+  check_cxx_source_runs("
         #include <immintrin.h>
         int main() {
             #if defined(__GNUC__) || defined(__clang__)
@@ -59,16 +56,15 @@ if(COMPILER_SUPPORTS_AVX512)
         }
     " HOST_SUPPORTS_AVX512)
 
-    set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_SAVE})
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_SAVE})
 endif()
 
-# 5. Если тест успешно пройден — пробрасываем флаги в INTERFACE
 if(COMPILER_SUPPORTS_AVX512 AND HOST_SUPPORTS_AVX512)
-    message(STATUS "AVX-512 успешно обнаружен и доступен для выполнения.")
-    target_compile_options(integration_lib INTERFACE ${AVX512_FLAG})
-    target_compile_definitions(integration_lib INTERFACE HAS_AVX512)
+  message(STATUS "AVX-512 avaiable")
+  target_compile_options(integration_lib INTERFACE ${AVX512_FLAG})
+  target_compile_definitions(integration_lib INTERFACE HAS_AVX512)
 else()
-    message(WARNING "AVX-512 не поддерживается компилятором или текущей системой.")
+  message(WARNING "AVX-512 isnt avaiable.")
 endif()
 
 # ------------------------------
@@ -86,6 +82,8 @@ if(BUILD_TESTS)
         URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
     )
   FetchContent_MakeAvailable(googletest)
+  include(GoogleTest)
+
 
   add_executable(integration_tests
         test/segment_1d.cpp
@@ -97,18 +95,33 @@ if(BUILD_TESTS)
         test/dynamic_integration.cpp
         test/collect_with_buffer.cpp
     )
+  gtest_discover_tests(integration_tests)
+
+
   target_link_libraries(integration_tests
         PRIVATE
             integration_lib
             gtest_main
     )
-
-  # Optional: enable C++20 for the test executable explicitly
   target_compile_features(integration_tests PRIVATE cxx_std_20)
 
-  # Discover tests
-  include(GoogleTest)
-  gtest_discover_tests(integration_tests)
+  if(COMPILER_SUPPORTS_AVX512 AND HOST_SUPPORTS_AVX512)
+    find_package(sleef CONFIG REQUIRED)
+    add_executable(avx512_tests
+                  test/cos10_batch.cpp
+                  test/collect_alligned.cpp
+                  )
+    target_link_libraries(avx512_tests PRIVATE
+                                      integration_lib
+                                      sleef::sleef
+                                      gtest_main
+                          )
+    target_compile_options(avx512_tests PRIVATE -mavx512f)
+    target_compile_features(avx512_tests PRIVATE cxx_std_20)
+
+    gtest_discover_tests(avx512_tests)
+  endif()
+
 endif()
 
 if(BUILD_BENCHMARKS)
