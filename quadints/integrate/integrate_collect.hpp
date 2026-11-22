@@ -1,8 +1,10 @@
 #ifndef QUADINTS_INTEGRATE_COLLECT_HPP
 #define QUADINTS_INTEGRATE_COLLECT_HPP
 #include <functional>
+#include <iostream>
 #include <utility>
 
+#include "quadints/common/aligned_array.hpp"
 #include "quadints/common/common.hpp"
 #include "quadints/common/to_domain.hpp"
 #include "quadints/linalg/dot_product.hpp"
@@ -16,6 +18,13 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell) -> return_type<Fu
     return_type res{};
     std::array<return_type, QuadRule::n_points> func_arr{};
     auto domain_points = get_domain_points<QuadRule>(cell);
+#if defined(__AVX512F__) || defined(HAS_AVX512)
+    if constexpr (has_aligned_batch_func<Func, typename Domain::point_type, QuadRule::n_points,
+                                         common::simd_alignment>) {
+        auto func_arr = std::invoke(f, domain_points);
+        return linalg::dot_product(func_arr, QuadRule::weights) * cell.mes();
+    }
+#endif
     if constexpr (has_batch_func<Func, typename Domain::point_type, QuadRule::n_points>) {
         func_arr = std::invoke(f, domain_points);
     } else {
@@ -72,7 +81,7 @@ constexpr auto integrate_collect(Func&& f, const Domain& cell, const RuntimeQuad
 }
 
 template <typename QuadRule1, typename QuadRule2 = QuadRule1, typename Domain1, typename Domain2, typename Func,
-          typename Scalar = decltype(*(QuadRule1::weights.begin()))>
+          typename Scalar = decltype(QuadRule1::weights[0])>
 constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2& cell2) {
     using return_type = std::invoke_result_t<Func, typename Domain1::point_type, typename Domain2::point_type>;
     return_type res{};
@@ -82,6 +91,14 @@ constexpr auto integrate2_collect(Func&& f, const Domain1& cell1, const Domain2&
     static_assert(n_points * sizeof(return_type) < DEFAULT_STACK_BYTES, "func_arr too large");
     std::array<typename Domain1::point_type, QuadRule1::n_points> domain_points1 = get_domain_points<QuadRule1>(cell1);
     std::array<typename Domain2::point_type, QuadRule2::n_points> domain_points2 = get_domain_points<QuadRule2>(cell2);
+
+#if defined(__AVX512F__) || defined(HAS_AVX512)
+    if constexpr (has_aligned_batch_func_2d<Func, typename Domain1::point_type, typename Domain2::point_type,
+                                            QuadRule1::n_points, QuadRule2::n_points, common::simd_alignment>) {
+        auto func_arr = std::invoke(f, domain_points1, domain_points2);
+        return linalg::quadratic_form<QuadRule1, QuadRule2>(func_arr) * cell1.mes() * cell2.mes();
+    }
+#endif
     if constexpr (has_batch_func2<Func, typename Domain1::point_type, typename Domain2::point_type, n_points>) {
         func_arr = std::invoke(f, domain_points1, domain_points2);
     } else {
