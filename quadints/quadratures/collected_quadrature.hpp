@@ -2,6 +2,8 @@
 #define QUADINTS_COLLECTED_QUADRATURE_HPP
 
 #include "quadints/adaptive/splitter_triangle.hpp"
+#include "quadints/common/aligned_array.hpp"
+
 namespace quadints {
 template <typename BaseQuadRule, size_t depth, typename Scalar>
 struct CollectedQuadratureStatic {
@@ -12,15 +14,15 @@ struct CollectedQuadratureStatic {
         constexpr range r;
         return r.template collect_quadrature_points<BaseQuadRule>();
     }
-    static constexpr auto make_weights() -> std::array<Scalar, n_points> {
-        std::array<Scalar, n_points> result{};
+    static constexpr auto make_weights() -> common::vectorized_array<Scalar, n_points> {
+        common::vectorized_array<Scalar, n_points> result;
         for (size_t i = 0; i < n_points; ++i) {
             result[i] = BaseQuadRule::weights[i % BaseQuadRule::n_points] / range::size();
         }
         return result;
     }
     static constexpr std::array<point_type, n_points> points = make_points();
-    static constexpr std::array<Scalar, n_points> weights = make_weights();
+    static constexpr common::vectorized_array<Scalar, n_points> weights = make_weights();
 };
 
 template <typename BaseQuadRule, typename Scalar = std::decay_t<decltype(BaseQuadRule::weights[0])>>
