@@ -105,23 +105,26 @@ if(BUILD_TESTS)
     )
   target_compile_features(integration_tests PRIVATE cxx_std_20)
 
-  if(COMPILER_SUPPORTS_AVX512 AND HOST_SUPPORTS_AVX512)
-    find_package(sleef CONFIG REQUIRED)
-    add_executable(avx512_tests
-                  test/cos10_batch.cpp
-                  test/collect_alligned.cpp
-                  )
-    target_link_libraries(avx512_tests PRIVATE
-                                      integration_lib
-                                      sleef::sleef
-                                      gtest_main
-                          )
-    target_compile_options(avx512_tests PRIVATE -mavx512f)
-    target_compile_features(avx512_tests PRIVATE cxx_std_20)
+  find_package(sleef CONFIG QUIET)
 
-    gtest_discover_tests(avx512_tests)
+  if(sleef_FOUND)
+    message(STATUS "SLEEF found: enabling sleef_tests")
+    add_executable(sleef_tests
+      test/cos10_batch.cpp
+    )
+    target_link_libraries(sleef_tests
+      PRIVATE
+        integration_lib
+        sleef::sleef
+        GTest::gtest_main
+    )
+    target_compile_features(sleef_tests PRIVATE cxx_std_20)
+    gtest_discover_tests(sleef_tests)
+
+    if(COMPILER_SUPPORTS_AVX512 AND HOST_SUPPORTS_AVX512)
+      target_compile_options(sleef_tests PRIVATE -mavx512f)
+    endif()
   endif()
-
 endif()
 
 if(BUILD_BENCHMARKS)
