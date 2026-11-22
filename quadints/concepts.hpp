@@ -36,16 +36,16 @@ concept domain = requires(T t) {
 };
 
 template <typename T, typename D, typename scalar>
-concept quadrature_rule = requires() {
+concept quadrature_rule = requires {
     requires domain<scalar, D>;
-    { T::n_points } -> std::convertible_to<size_t>;
+    { T::n_points } -> std::convertible_to<std::size_t>;
     requires std::ranges::contiguous_range<decltype(T::points)>;
-    T::points;
-    T::weights;
     requires std::ranges::contiguous_range<decltype(T::weights)>;
+    requires std::ranges::sized_range<decltype(T::points)>;
+    requires std::ranges::sized_range<decltype(T::weights)>;
     { T::weights[0] } -> std::convertible_to<scalar>;
-    requires T::n_points == std::tuple_size_v<decltype(T::points)>&& T::n_points ==
-                 std::tuple_size_v<decltype(T::weights)>;
+    requires T::n_points == std::ranges::size(T::points);
+    requires T::n_points == std::ranges::size(T::weights);
 };
 
 template <typename F, typename arg, typename Scalar>
