@@ -377,7 +377,7 @@ inline auto quadratic_form(const MatrixArray& A) {
 
 #else
 
-    return detail::quadratic_form_fallback<QuadRuleX, QuadRuleY>(A);
+    return quadratic_form_fallback<QuadRuleX, QuadRuleY>(A);
 
 #endif
 }
